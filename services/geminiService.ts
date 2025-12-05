@@ -2,9 +2,7 @@ import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Message, Role, Attachment } from '../types';
 
 // Ensure API key is present
-const apiKey = process.env.API_KEY || '';
-
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const createChatSession = (contextText: string = '') => {
   let instruction = "Eres Antelito, un asistente de investigación inteligente y útil. ";
@@ -60,7 +58,7 @@ export const sendMessageStream = async (
         parts.push({ text });
     }
 
-    return chat.sendMessageStream({ message: { role: 'user', parts } });
+    return chat.sendMessageStream({ message: parts });
   } else {
     // Simple text message
     return chat.sendMessageStream({ message: text });
