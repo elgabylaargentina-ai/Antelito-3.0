@@ -1,8 +1,11 @@
-/// <reference types="vite/client" />
-
-declare namespace NodeJS {
-  interface ProcessEnv {
-    API_KEY: string;
-    [key: string]: any;
+// Augment the existing NodeJS namespace interface merging
+declare global {
+  namespace NodeJS {
+    interface ProcessEnv {
+      API_KEY: string;
+      [key: string]: string | undefined;
+    }
   }
 }
+
+export {};
