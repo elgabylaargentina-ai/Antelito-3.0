@@ -1,4 +1,3 @@
-// Augment the existing NodeJS namespace interface merging
 declare global {
   namespace NodeJS {
     interface ProcessEnv {

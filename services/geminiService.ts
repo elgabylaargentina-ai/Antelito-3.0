@@ -1,7 +1,7 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Message, Role, Attachment } from '../types';
 
-// Ensure API key is present
+// The API key must be obtained exclusively from the environment variable process.env.API_KEY.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const createChatSession = (contextText: string = '') => {
