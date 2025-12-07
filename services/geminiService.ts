@@ -1,8 +1,13 @@
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { Message, Role, Attachment } from '../types';
 
-// The API key must be obtained exclusively from the environment variable process.env.API_KEY.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Validation: Ensure API Key is present
+const apiKey = process.env.API_KEY;
+if (!apiKey || apiKey.includes("API_KEY")) {
+  console.warn("API_KEY no encontrada. Asegúrate de configurar VITE_API_KEY en Vercel.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || 'dummy-key-for-build' });
 
 export const createChatSession = (contextText: string = '') => {
   let instruction = "Eres Antelito, un asistente de investigación inteligente y útil. ";
