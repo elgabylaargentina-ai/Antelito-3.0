@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { SourceDocument, UserRole } from '../types';
-import { FileText, Upload, Trash2, FileCheck, Info, Download, Archive, Loader2, Lock, Unlock, Database } from 'lucide-react';
+import { FileText, Upload, Trash2, FileCheck, Info, Download, Archive, Loader2, Lock, Unlock, Database, X } from 'lucide-react';
 
 interface LibrarySidebarProps {
   documents: SourceDocument[];
@@ -9,9 +9,10 @@ interface LibrarySidebarProps {
   onToggleDocument: (id: string) => void;
   onExportLibrary: () => void;
   onImportLibrary: (file: File) => void;
-  onToggleGlobal?: (id: string) => void; // New prop for admins
+  onToggleGlobal?: (id: string) => void;
   isProcessing: boolean;
-  userRole: UserRole; // New prop
+  userRole: UserRole;
+  onClose?: () => void; // New prop for mobile
 }
 
 const LibrarySidebar: React.FC<LibrarySidebarProps> = ({ 
@@ -23,7 +24,8 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   onImportLibrary,
   onToggleGlobal,
   isProcessing,
-  userRole
+  userRole,
+  onClose
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -34,7 +36,6 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
     if (e.target.files && e.target.files.length > 0) {
       onAddDocument(e.target.files);
     }
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -71,10 +72,19 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
         onDrop={onDrop}
     >
       <div className={`p-4 border-b border-slate-200 backdrop-blur-sm ${isAdmin ? 'bg-blue-50/50' : 'bg-white/50'}`}>
-        <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1 flex items-center gap-2">
-          <FileText size={16} className={isAdmin ? "text-blue-500" : "text-yellow-500"} />
-          {isAdmin ? 'Gestión DB' : 'Biblioteca'}
-        </h2>
+        <div className="flex justify-between items-center mb-1">
+            <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+            <FileText size={16} className={isAdmin ? "text-blue-500" : "text-yellow-500"} />
+            {isAdmin ? 'Gestión DB' : 'Biblioteca'}
+            </h2>
+            {/* Mobile Close Button */}
+            {onClose && (
+                <button onClick={onClose} className="md:hidden text-slate-400 hover:text-slate-600 p-1">
+                    <X size={20} />
+                </button>
+            )}
+        </div>
+
         <div className="flex justify-between items-end">
             <p className="text-xs text-slate-500">
             {documents.filter(d => d.isSelected).length} seleccionados

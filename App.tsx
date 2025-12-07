@@ -50,6 +50,23 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documents, userRole]); 
 
+  // Handle mobile sidebar state on window resize
+  useEffect(() => {
+    const handleResize = () => {
+        if (window.innerWidth < 768) {
+            setSidebarOpen(false);
+        } else {
+            setSidebarOpen(true);
+        }
+    };
+    
+    // Initial check
+    handleResize();
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Auto-scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -82,11 +99,11 @@ const App: React.FC = () => {
   const handleResetChat = () => {
       setMessages([]);
       startNewChat();
+      if (window.innerWidth < 768) setSidebarOpen(false);
   };
 
   const handleLogin = (role: UserRole) => {
       setUserRole(role);
-      // Ensure sidebar is open on desktop when logging in
       if (window.innerWidth >= 768) setSidebarOpen(true);
   };
 
@@ -237,10 +254,20 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
+    // Use h-dvh (Dynamic Viewport Height) for mobile browsers to handle address bars correctly
+    <div className="flex h-dvh bg-slate-50 overflow-hidden font-sans">
+      
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+            className="fixed inset-0 bg-black/40 z-20 md:hidden backdrop-blur-sm transition-opacity"
+            onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar - Library */}
       <div 
-        className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full absolute'} md:relative md:translate-x-0 z-20 transition-transform duration-300 ease-in-out h-full flex-shrink-0 shadow-xl md:shadow-none`}
+        className={`fixed md:relative inset-y-0 left-0 z-30 w-[85%] md:w-auto transform transition-transform duration-300 ease-in-out h-full shadow-2xl md:shadow-none ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}
       >
         <LibrarySidebar 
             documents={documents}
@@ -252,36 +279,37 @@ const App: React.FC = () => {
             onToggleGlobal={handleToggleGlobal}
             isProcessing={isProcessingDocs}
             userRole={userRole}
+            onClose={() => setSidebarOpen(false)} // Pass close handler for mobile
         />
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full relative w-full bg-white md:rounded-l-2xl md:my-2 md:mr-2 md:shadow-lg overflow-hidden border border-slate-200">
+      <div className="flex-1 flex flex-col h-full relative w-full bg-white md:rounded-l-2xl md:my-2 md:mr-2 md:shadow-lg overflow-hidden border-l border-slate-200">
         {/* Header */}
-        <header className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white sticky top-0 z-10">
+        <header className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 border-b border-slate-100 bg-white/95 backdrop-blur z-10">
           <div className="flex items-center gap-3">
              <button 
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 text-slate-500 hover:bg-slate-100 rounded-lg md:hidden"
+                onClick={() => setSidebarOpen(true)}
+                className="p-2 -ml-2 text-slate-500 hover:bg-slate-100 rounded-lg md:hidden active:bg-slate-200"
              >
-                <Menu size={20} />
+                <Menu size={24} />
              </button>
              
-             <div className="flex items-center gap-3">
-                 <Mascot size={32} />
+             <div className="flex items-center gap-2 md:gap-3">
+                 <Mascot size={28} className="md:w-8 md:h-8" />
                  <div>
-                     <h1 className="font-bold text-slate-800 text-lg leading-tight">Antelito 3.0</h1>
-                     <div className="flex items-center gap-2">
-                         <span className={`w-2 h-2 rounded-full ${userRole === 'admin' ? 'bg-blue-500' : 'bg-green-500'}`}></span>
-                         <p className="text-[10px] text-slate-500 uppercase tracking-wider">
-                             {userRole === 'admin' ? 'Administrador' : 'Usuario'}
+                     <h1 className="font-bold text-slate-800 text-base md:text-lg leading-tight">Antelito 3.0</h1>
+                     <div className="flex items-center gap-1.5">
+                         <span className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full ${userRole === 'admin' ? 'bg-blue-500' : 'bg-green-500'}`}></span>
+                         <p className="text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+                             {userRole === 'admin' ? 'Admin' : 'Usuario'}
                          </p>
                      </div>
                  </div>
              </div>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-1 md:gap-2">
             <button 
                 onClick={handleResetChat}
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
@@ -300,25 +328,25 @@ const App: React.FC = () => {
         </header>
 
         {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto scroll-smooth bg-white">
+        <div className="flex-1 overflow-y-auto scroll-smooth bg-white touch-pan-y">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in duration-300">
-               <div className="mb-6 opacity-80">
-                  <Mascot size={100} />
+            <div className="h-full flex flex-col items-center justify-center p-6 md:p-8 text-center animate-in fade-in zoom-in duration-300">
+               <div className="mb-4 md:mb-6 opacity-80">
+                  <Mascot size={80} className="md:w-[100px] md:h-[100px]" />
                </div>
-               <h2 className="text-2xl font-bold text-slate-800 mb-2">
-                   {userRole === 'admin' ? 'Panel de Control' : 'Tu Biblioteca Personal'}
+               <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-2">
+                   {userRole === 'admin' ? 'Panel de Control' : 'Tu Biblioteca'}
                </h2>
-               <p className="text-slate-500 max-w-md mb-8 leading-relaxed">
+               <p className="text-sm md:text-base text-slate-500 max-w-md mb-6 leading-relaxed px-4">
                  {userRole === 'admin' 
-                    ? 'Como administrador, puedes gestionar los archivos fijos de la base de datos usando el icono de candado en la barra lateral.'
-                    : 'Antelito está listo para ayudarte. Tus consultas se basarán en los documentos disponibles en la biblioteca.'
+                    ? 'Gestiona la base de datos global. Los archivos con candado son visibles para todos.'
+                    : 'Antelito está listo. Tus consultas se basarán en los documentos disponibles.'
                  }
                </p>
                
                {documents.length === 0 && (
-                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-w-sm text-sm text-yellow-800 animate-bounce">
-                       👈 ¡Arrastra archivos aquí para empezar!
+                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs md:text-sm text-yellow-800 animate-bounce">
+                       👈 Sube archivos en el menú
                    </div>
                )}
             </div>
@@ -333,18 +361,10 @@ const App: React.FC = () => {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-white border-t border-slate-100">
+        <div className="p-2 md:p-4 bg-white border-t border-slate-100">
           <ChatInput onSend={handleSendMessage} disabled={isLoading} />
         </div>
       </div>
-      
-      {/* Overlay for mobile sidebar */}
-      {sidebarOpen && (
-        <div 
-            className="fixed inset-0 bg-black/20 z-10 md:hidden backdrop-blur-sm"
-            onClick={() => setSidebarOpen(false)}
-        />
-      )}
     </div>
   );
 };
