@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { SourceDocument } from '../types';
-import { FileText, Upload, Trash2, FileCheck, Info, Download, Archive, Loader2, Lock } from 'lucide-react';
+import { SourceDocument, UserRole } from '../types';
+import { FileText, Upload, Trash2, FileCheck, Info, Download, Archive, Loader2, Lock, Unlock, Database } from 'lucide-react';
 
 interface LibrarySidebarProps {
   documents: SourceDocument[];
@@ -9,7 +9,9 @@ interface LibrarySidebarProps {
   onToggleDocument: (id: string) => void;
   onExportLibrary: () => void;
   onImportLibrary: (file: File) => void;
+  onToggleGlobal?: (id: string) => void; // New prop for admins
   isProcessing: boolean;
+  userRole: UserRole; // New prop
 }
 
 const LibrarySidebar: React.FC<LibrarySidebarProps> = ({ 
@@ -19,11 +21,14 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   onToggleDocument,
   onExportLibrary,
   onImportLibrary,
-  isProcessing
+  onToggleGlobal,
+  isProcessing,
+  userRole
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const isAdmin = userRole === 'admin';
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -65,10 +70,10 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
         onDragLeave={onDragLeave}
         onDrop={onDrop}
     >
-      <div className="p-4 border-b border-slate-200 bg-white/50 backdrop-blur-sm">
+      <div className={`p-4 border-b border-slate-200 backdrop-blur-sm ${isAdmin ? 'bg-blue-50/50' : 'bg-white/50'}`}>
         <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide mb-1 flex items-center gap-2">
-          <FileText size={16} className="text-yellow-500" />
-          Biblioteca
+          <FileText size={16} className={isAdmin ? "text-blue-500" : "text-yellow-500"} />
+          {isAdmin ? 'Gestión DB' : 'Biblioteca'}
         </h2>
         <div className="flex justify-between items-end">
             <p className="text-xs text-slate-500">
@@ -78,10 +83,11 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                 <div className="flex gap-1">
                     <button 
                         onClick={onExportLibrary}
-                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors"
-                        title="Exportar copia de seguridad"
+                        className={`p-1.5 rounded-md transition-colors flex gap-1 items-center ${isAdmin ? 'text-blue-600 bg-blue-100 hover:bg-blue-200' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'}`}
+                        title={isAdmin ? "Descargar Base de Datos JSON" : "Exportar copia de seguridad"}
                     >
-                        <Download size={14} />
+                        {isAdmin ? <Database size={14} /> : <Download size={14} />}
+                        {isAdmin && <span className="text-[10px] font-bold">JSON</span>}
                     </button>
                 </div>
             )}
@@ -147,7 +153,8 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                     <p className={`text-sm font-medium truncate ${doc.isSelected ? 'text-slate-800' : 'text-slate-500'}`}>
                     {doc.name}
                     </p>
-                    {doc.readOnly && (
+                    {/* Visual lock for everyone */}
+                    {doc.readOnly && !isAdmin && (
                         <Lock size={10} className="text-slate-400 shrink-0" />
                     )}
                 </div>
@@ -158,7 +165,22 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                 </p>
               </div>
 
-              {!doc.readOnly && (
+              {/* Admin Controls */}
+              {isAdmin && (
+                  <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (onToggleGlobal) onToggleGlobal(doc.id);
+                    }}
+                    className={`p-1.5 rounded-md transition-all ${doc.readOnly ? 'text-blue-500 bg-blue-50' : 'text-slate-300 hover:text-blue-500'}`}
+                    title={doc.readOnly ? "Desbloquear (Quitar de DB)" : "Bloquear (Guardar en DB)"}
+                  >
+                      {doc.readOnly ? <Lock size={14} /> : <Unlock size={14} />}
+                  </button>
+              )}
+
+              {/* Delete button: Visible if NOT readOnly OR if User is Admin */}
+              {(!doc.readOnly || isAdmin) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -178,11 +200,11 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
       <div className="p-4 border-t border-slate-200 bg-white">
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-md transition-all font-medium text-sm active:scale-95"
+          className={`w-full flex items-center justify-center gap-2 px-4 py-3 text-white rounded-xl shadow-md transition-all font-medium text-sm active:scale-95 ${isAdmin ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-900 hover:bg-slate-800'}`}
           disabled={isProcessing}
         >
           {isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-          <span>Añadir Archivos</span>
+          <span>{isAdmin ? 'Subir a DB' : 'Añadir Archivos'}</span>
         </button>
         <input
           type="file"

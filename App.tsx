@@ -1,16 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Message, Role, Attachment, SourceDocument } from './types';
+import { Message, Role, Attachment, SourceDocument, UserRole } from './types';
 import MessageItem from './components/MessageItem';
 import ChatInput from './components/ChatInput';
 import Mascot from './components/Mascot';
 import LibrarySidebar from './components/LibrarySidebar';
+import LoginScreen from './components/LoginScreen'; // Import login screen
 import { createChatSession, sendMessageStream } from './services/geminiService';
 import { extractTextFromPDF } from './services/pdfService';
 import { saveLibrary, loadLibrary, exportLibrary } from './services/storageService';
 import { GenerateContentResponse, Chat } from '@google/genai';
-import { Menu, RefreshCw } from 'lucide-react';
+import { Menu, RefreshCw, LogOut } from 'lucide-react';
 
 const App: React.FC = () => {
+  // Auth State
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
+
   // Application State
   const [chatSession, setChatSession] = useState<Chat | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,10 +44,11 @@ const App: React.FC = () => {
   
   // Initialize Chat Session when documents change
   useEffect(() => {
-    // Only restart chat if we have documents or if it's the first load
-    startNewChat();
+    if (userRole) { // Only start chat if logged in
+        startNewChat();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [documents]); 
+  }, [documents, userRole]); 
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -79,6 +84,18 @@ const App: React.FC = () => {
       startNewChat();
   };
 
+  const handleLogin = (role: UserRole) => {
+      setUserRole(role);
+      // Ensure sidebar is open on desktop when logging in
+      if (window.innerWidth >= 768) setSidebarOpen(true);
+  };
+
+  const handleLogout = () => {
+      setUserRole(null);
+      setMessages([]);
+      // Optional: Clear temporary docs on logout? No, keep persistence for UX
+  };
+
   const handleAddDocument = async (files: FileList) => {
     setIsProcessingDocs(true);
     
@@ -99,7 +116,8 @@ const App: React.FC = () => {
                 name: file.name,
                 type: type,
                 content: content,
-                isSelected: true
+                isSelected: true,
+                readOnly: false // Uploads are always editable initially
             } as SourceDocument;
         } catch (err) {
             console.error("Error processing file", file.name, err);
@@ -116,9 +134,7 @@ const App: React.FC = () => {
   const handleRemoveDocument = (id: string) => {
     setDocuments(prev => {
         const newDocs = prev.filter(d => d.id !== id);
-        // If list empty, clear storage
         if (newDocs.length === 0) {
-            // We can trigger a clear in storageService, but saveLibrary handles empty array
             saveLibrary([]); 
         }
         return newDocs;
@@ -129,6 +145,12 @@ const App: React.FC = () => {
     setDocuments(prev => prev.map(d => d.id === id ? { ...d, isSelected: !d.isSelected } : d));
   };
 
+  // Admin Feature: Toggle "Global/Fixed" status
+  const handleToggleGlobal = (id: string) => {
+      if (userRole !== 'admin') return;
+      setDocuments(prev => prev.map(d => d.id === id ? { ...d, readOnly: !d.readOnly } : d));
+  };
+
   const handleExportLibrary = () => {
       exportLibrary(documents);
   };
@@ -137,7 +159,6 @@ const App: React.FC = () => {
       try {
           const text = await file.text();
           const importedDocs = JSON.parse(text) as SourceDocument[];
-          // Validate basic structure
           if (Array.isArray(importedDocs) && importedDocs.every(d => d.id && d.content)) {
               setDocuments(prev => [...prev, ...importedDocs]);
           } else {
@@ -210,6 +231,11 @@ const App: React.FC = () => {
     }
   };
 
+  // If not logged in, show Login Screen
+  if (!userRole) {
+      return <LoginScreen onLogin={handleLogin} />;
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
       {/* Sidebar - Library */}
@@ -223,7 +249,9 @@ const App: React.FC = () => {
             onToggleDocument={handleToggleDocument}
             onExportLibrary={handleExportLibrary}
             onImportLibrary={handleImportLibrary}
+            onToggleGlobal={handleToggleGlobal}
             isProcessing={isProcessingDocs}
+            userRole={userRole}
         />
       </div>
 
@@ -243,20 +271,32 @@ const App: React.FC = () => {
                  <Mascot size={32} />
                  <div>
                      <h1 className="font-bold text-slate-800 text-lg leading-tight">Antelito 3.0</h1>
-                     <p className="text-[10px] text-slate-500 uppercase tracking-wider">
-                         {documents.filter(d => d.isSelected).length > 0 ? 'Modo: Investigación' : 'Esperando Documentos'}
-                     </p>
+                     <div className="flex items-center gap-2">
+                         <span className={`w-2 h-2 rounded-full ${userRole === 'admin' ? 'bg-blue-500' : 'bg-green-500'}`}></span>
+                         <p className="text-[10px] text-slate-500 uppercase tracking-wider">
+                             {userRole === 'admin' ? 'Administrador' : 'Usuario'}
+                         </p>
+                     </div>
                  </div>
              </div>
           </div>
           
-          <button 
-            onClick={handleResetChat}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-            title="Reiniciar chat"
-          >
-            <RefreshCw size={18} />
-          </button>
+          <div className="flex gap-2">
+            <button 
+                onClick={handleResetChat}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+                title="Reiniciar chat"
+            >
+                <RefreshCw size={18} />
+            </button>
+            <button 
+                onClick={handleLogout}
+                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                title="Cerrar sesión"
+            >
+                <LogOut size={18} />
+            </button>
+          </div>
         </header>
 
         {/* Chat Area */}
@@ -266,9 +306,14 @@ const App: React.FC = () => {
                <div className="mb-6 opacity-80">
                   <Mascot size={100} />
                </div>
-               <h2 className="text-2xl font-bold text-slate-800 mb-2">Tu Biblioteca Personal</h2>
+               <h2 className="text-2xl font-bold text-slate-800 mb-2">
+                   {userRole === 'admin' ? 'Panel de Control' : 'Tu Biblioteca Personal'}
+               </h2>
                <p className="text-slate-500 max-w-md mb-8 leading-relaxed">
-                 Arrastra tus archivos PDF, TXT o MD en la barra lateral. Antelito leerá todo y responderá tus dudas basándose en ellos.
+                 {userRole === 'admin' 
+                    ? 'Como administrador, puedes gestionar los archivos fijos de la base de datos usando el icono de candado en la barra lateral.'
+                    : 'Antelito está listo para ayudarte. Tus consultas se basarán en los documentos disponibles en la biblioteca.'
+                 }
                </p>
                
                {documents.length === 0 && (

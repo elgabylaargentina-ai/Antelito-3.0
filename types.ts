@@ -3,6 +3,8 @@ export enum Role {
   MODEL = 'model'
 }
 
+export type UserRole = 'admin' | 'user';
+
 export interface Attachment {
   type: 'image';
   mimeType: string;
