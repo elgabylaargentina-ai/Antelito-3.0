@@ -11,16 +11,39 @@ localforage.config({
 
 export const saveLibrary = async (documents: SourceDocument[]) => {
   try {
-    await localforage.setItem(STORE_KEY, documents);
+    // Solo guardamos los documentos que NO son de solo lectura (los del usuario)
+    // Los globales se cargan siempre desde el servidor
+    const userDocuments = documents.filter(doc => !doc.readOnly);
+    await localforage.setItem(STORE_KEY, userDocuments);
   } catch (err) {
     console.error('Error saving library:', err);
   }
 };
 
+const loadGlobalLibrary = async (): Promise<SourceDocument[]> => {
+  try {
+    const response = await fetch('/library.json');
+    if (!response.ok) return [];
+    const globalDocs: SourceDocument[] = await response.json();
+    // Asegurarnos de que tengan el flag readOnly y estén seleccionados por defecto
+    return globalDocs.map(doc => ({ ...doc, readOnly: true, isSelected: true }));
+  } catch (error) {
+    console.warn("No se pudo cargar la biblioteca global:", error);
+    return [];
+  }
+};
+
 export const loadLibrary = async (): Promise<SourceDocument[]> => {
   try {
-    const docs = await localforage.getItem<SourceDocument[]>(STORE_KEY);
-    return docs || [];
+    const [localDocs, globalDocs] = await Promise.all([
+      localforage.getItem<SourceDocument[]>(STORE_KEY),
+      loadGlobalLibrary()
+    ]);
+    
+    const validLocalDocs = localDocs || [];
+    
+    // Combinar: Primero los globales (fijos), luego los del usuario
+    return [...globalDocs, ...validLocalDocs];
   } catch (err) {
     console.error('Error loading library:', err);
     return [];

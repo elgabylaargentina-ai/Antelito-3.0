@@ -24,6 +24,7 @@ export interface SourceDocument {
   type: string;
   content: string; // Text content of the file
   isSelected: boolean;
+  readOnly?: boolean; // Indicates if the file is a global/fixed file
 }
 
 export interface ChatSession {

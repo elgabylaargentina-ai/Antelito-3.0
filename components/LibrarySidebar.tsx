@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { SourceDocument } from '../types';
-import { FileText, Upload, Trash2, FileCheck, Info, Download, Archive, Loader2 } from 'lucide-react';
+import { FileText, Upload, Trash2, FileCheck, Info, Download, Archive, Loader2, Lock } from 'lucide-react';
 
 interface LibrarySidebarProps {
   documents: SourceDocument[];
@@ -143,25 +143,33 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
               </div>
               
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${doc.isSelected ? 'text-slate-800' : 'text-slate-500'}`}>
-                  {doc.name}
-                </p>
+                <div className="flex items-center gap-1">
+                    <p className={`text-sm font-medium truncate ${doc.isSelected ? 'text-slate-800' : 'text-slate-500'}`}>
+                    {doc.name}
+                    </p>
+                    {doc.readOnly && (
+                        <Lock size={10} className="text-slate-400 shrink-0" />
+                    )}
+                </div>
                 <p className="text-[10px] text-slate-400 uppercase flex items-center gap-1">
                   <span className="bg-slate-200 px-1 rounded">{doc.type}</span> 
                   <span>{(doc.content.length / 1000).toFixed(1)}k chars</span>
+                  {doc.readOnly && <span className="text-amber-600 bg-amber-50 px-1 rounded ml-1">Fijo</span>}
                 </p>
               </div>
 
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveDocument(doc.id);
-                }}
-                className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-md transition-all"
-                title="Eliminar fuente"
-              >
-                <Trash2 size={14} />
-              </button>
+              {!doc.readOnly && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveDocument(doc.id);
+                    }}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-100 text-slate-400 hover:text-red-500 rounded-md transition-all"
+                    title="Eliminar fuente"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+              )}
             </div>
           ))
         )}
