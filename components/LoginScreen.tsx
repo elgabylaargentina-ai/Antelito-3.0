@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Mascot from './Mascot';
 import { User, ShieldCheck, ArrowRight, Lock } from 'lucide-react';
 import { UserRole } from '../types';
+import DeveloperSignature from './DeveloperSignature';
 
 interface LoginScreenProps {
   onLogin: (role: UserRole) => void;
@@ -23,7 +24,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-dvh bg-slate-50 flex flex-col items-center justify-center p-4 overflow-y-auto">
+    <div className="min-h-dvh bg-slate-50 flex flex-col items-center justify-center p-4 overflow-y-auto relative">
+      <DeveloperSignature />
+      
       <div className="w-full max-w-md flex flex-col items-center">
         <div className="mb-6 md:mb-8 flex flex-col items-center animate-float">
             <Mascot size={100} className="w-20 h-20 md:w-32 md:h-32" />

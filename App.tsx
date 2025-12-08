@@ -5,6 +5,7 @@ import ChatInput from './components/ChatInput';
 import Mascot from './components/Mascot';
 import LibrarySidebar from './components/LibrarySidebar';
 import LoginScreen from './components/LoginScreen'; // Import login screen
+import DeveloperSignature from './components/DeveloperSignature'; // Import signature
 import { createChatSession, sendMessageStream } from './services/geminiService';
 import { extractTextFromPDF } from './services/pdfService';
 import { saveLibrary, loadLibrary, exportLibrary } from './services/storageService';
@@ -255,8 +256,10 @@ const App: React.FC = () => {
 
   return (
     // Use h-dvh (Dynamic Viewport Height) for mobile browsers to handle address bars correctly
-    <div className="flex h-dvh bg-slate-50 overflow-hidden font-sans">
+    <div className="flex h-dvh bg-slate-50 overflow-hidden font-sans relative">
       
+      <DeveloperSignature />
+
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div 
@@ -309,7 +312,8 @@ const App: React.FC = () => {
              </div>
           </div>
           
-          <div className="flex gap-1 md:gap-2">
+          {/* Controls: Added right margin to avoid overlap with Developer Signature on desktop */}
+          <div className="flex gap-1 md:gap-2 mr-0 md:mr-32 transition-all">
             <button 
                 onClick={handleResetChat}
                 className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
