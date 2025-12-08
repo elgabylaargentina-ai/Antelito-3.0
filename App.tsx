@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isProcessingDocs, setIsProcessingDocs] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -41,12 +42,14 @@ const App: React.FC = () => {
       if (documents.length > 0) {
           saveLibrary(documents);
       }
+      updateSuggestions();
   }, [documents]);
   
   // Initialize Chat Session when documents change
   useEffect(() => {
     if (userRole) { // Only start chat if logged in
         startNewChat();
+        updateSuggestions();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documents, userRole]); 
@@ -76,6 +79,54 @@ const App: React.FC = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const updateSuggestions = () => {
+      const selectedDocs = documents.filter(d => d.isSelected);
+      const newSuggestions: string[] = [];
+
+      // Logic to generate context-aware suggestions based on filenames/content
+      const hasTarifas = selectedDocs.some(d => d.name.toLowerCase().includes('tarifas'));
+      const hasMarcas = selectedDocs.some(d => d.name.toLowerCase().includes('marcas'));
+      const hasDemora = selectedDocs.some(d => d.name.toLowerCase().includes('demora'));
+      const hasPlanes = selectedDocs.some(d => d.name.toLowerCase().includes('planes'));
+      const hasMigracion = selectedDocs.some(d => d.name.toLowerCase().includes('migracion'));
+
+      if (hasTarifas) {
+          newSuggestions.push("¿Costo conexión fibra?");
+          newSuggestions.push("¿Precio traslado?");
+      }
+      if (hasMarcas) {
+          newSuggestions.push("¿Qué hago si falta el poste?");
+          newSuggestions.push("Pasos para traslado");
+      }
+      if (hasDemora) {
+          newSuggestions.push("¿Qué significa código ET?");
+          newSuggestions.push("Cliente no reside (NR)");
+      }
+      if (hasPlanes) {
+          newSuggestions.push("Diferencia Fibra Plus vs Básico");
+          newSuggestions.push("Tope consumo plan flexible");
+      }
+      if (hasMigracion) {
+          newSuggestions.push("Migración Cobre a Fibra");
+          newSuggestions.push("Reclamos TLK-GDF");
+      }
+
+      // Fallback defaults if nothing specific matches or list is empty
+      if (newSuggestions.length === 0) {
+          if (selectedDocs.length > 0) {
+              newSuggestions.push("Resumen de los documentos");
+              newSuggestions.push("Puntos clave");
+              newSuggestions.push("Analizar inconsistencias");
+          } else {
+              newSuggestions.push("¿Cómo subir archivos?");
+              newSuggestions.push("¿Qué puedes hacer?");
+          }
+      }
+
+      // Shuffle and limit to 4-5 to keep it clean
+      setSuggestions(newSuggestions.sort(() => 0.5 - Math.random()).slice(0, 5));
+  };
 
   const startNewChat = () => {
     const selectedDocs = documents.filter(d => d.isSelected);
@@ -366,7 +417,7 @@ const App: React.FC = () => {
 
         {/* Input Area */}
         <div className="p-2 md:p-4 bg-white border-t border-slate-100">
-          <ChatInput onSend={handleSendMessage} disabled={isLoading} />
+          <ChatInput onSend={handleSendMessage} disabled={isLoading} suggestions={suggestions} />
         </div>
       </div>
     </div>
