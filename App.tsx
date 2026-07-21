@@ -6,6 +6,7 @@ import Mascot from './components/Mascot';
 import LibrarySidebar from './components/LibrarySidebar';
 import LoginScreen from './components/LoginScreen'; // Import login screen
 import DeveloperSignature from './components/DeveloperSignature'; // Import signature
+import TrainingManager from './components/TrainingManager'; // Import TrainingManager
 import { createChatSession, sendMessageStream } from './services/geminiService';
 import { extractTextFromPDF } from './services/pdfService';
 import { saveLibrary, loadLibrary, exportLibrary } from './services/storageService';
@@ -15,6 +16,9 @@ import { Menu, RefreshCw, LogOut } from 'lucide-react';
 const App: React.FC = () => {
   // Auth State
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  
+  // Admin Navigation State
+  const [adminView, setAdminView] = useState<'chat' | 'training'>('chat');
 
   // Application State
   const [chatSession, setChatSession] = useState<Chat | null>(null);
@@ -362,6 +366,32 @@ const App: React.FC = () => {
                  </div>
              </div>
           </div>
+
+          {/* Admin Navigation Selector */}
+          {userRole === 'admin' && (
+            <div className="flex bg-slate-100 p-0.5 md:p-1 rounded-xl border border-slate-200/60 scale-90 md:scale-100">
+              <button
+                onClick={() => setAdminView('chat')}
+                className={`px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all ${
+                  adminView === 'chat' 
+                    ? 'bg-white text-blue-600 shadow-sm' 
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                Chat General
+              </button>
+              <button
+                onClick={() => setAdminView('training')}
+                className={`px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all ${
+                  adminView === 'training' 
+                    ? 'bg-white text-blue-600 shadow-sm' 
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                Agente IA
+              </button>
+            </div>
+          )}
           
           {/* Controls: Added right margin to avoid overlap with Developer Signature on desktop */}
           <div className="flex gap-1 md:gap-2 mr-0 md:mr-32 transition-all">
@@ -382,43 +412,52 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Chat Area */}
-        <div className="flex-1 overflow-y-auto scroll-smooth bg-white touch-pan-y">
-          {messages.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center p-6 md:p-8 text-center animate-in fade-in zoom-in duration-300">
-               <div className="mb-4 md:mb-6 opacity-80">
-                  <Mascot size={80} className="md:w-[100px] md:h-[100px]" />
-               </div>
-               <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-2">
-                   {userRole === 'admin' ? 'Panel de Control' : 'Tu Biblioteca'}
-               </h2>
-               <p className="text-sm md:text-base text-slate-500 max-w-md mb-6 leading-relaxed px-4">
-                 {userRole === 'admin' 
-                    ? 'Gestiona la base de datos global. Los archivos con candado son visibles para todos.'
-                    : 'Antelito está listo. Tus consultas se basarán en los documentos disponibles.'
-                 }
-               </p>
-               
-               {documents.length === 0 && (
-                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs md:text-sm text-yellow-800 animate-bounce">
-                       👈 Sube archivos en el menú
+        {/* Main Workspace content */}
+        {userRole === 'admin' && adminView === 'training' ? (
+          <div className="flex-1 overflow-hidden h-full">
+            <TrainingManager />
+          </div>
+        ) : (
+          <>
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto scroll-smooth bg-white touch-pan-y">
+              {messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center p-6 md:p-8 text-center animate-in fade-in zoom-in duration-300">
+                   <div className="mb-4 md:mb-6 opacity-80">
+                      <Mascot size={80} className="md:w-[100px] md:h-[100px]" />
                    </div>
-               )}
+                   <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-2">
+                       {userRole === 'admin' ? 'Panel de Control' : 'Tu Biblioteca'}
+                   </h2>
+                   <p className="text-sm md:text-base text-slate-500 max-w-md mb-6 leading-relaxed px-4">
+                     {userRole === 'admin' 
+                        ? 'Gestiona la base de datos global. Los archivos con candado son visibles para todos.'
+                        : 'Antelito está listo. Tus consultas se basarán en los documentos disponibles.'
+                     }
+                   </p>
+                   
+                   {documents.length === 0 && (
+                       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-xs md:text-sm text-yellow-800 animate-bounce">
+                           👈 Sube archivos en el menú
+                       </div>
+                   )}
+                </div>
+              ) : (
+                <div className="flex flex-col pb-4">
+                  {messages.map((msg) => (
+                    <MessageItem key={msg.id} message={msg} />
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex flex-col pb-4">
-              {messages.map((msg) => (
-                <MessageItem key={msg.id} message={msg} />
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </div>
 
-        {/* Input Area */}
-        <div className="p-2 md:p-4 bg-white border-t border-slate-100">
-          <ChatInput onSend={handleSendMessage} disabled={isLoading} suggestions={suggestions} />
-        </div>
+            {/* Input Area */}
+            <div className="p-2 md:p-4 bg-white border-t border-slate-100">
+              <ChatInput onSend={handleSendMessage} disabled={isLoading} suggestions={suggestions} />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

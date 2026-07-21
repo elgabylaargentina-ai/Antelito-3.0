@@ -1,8 +1,9 @@
 import localforage from 'localforage';
-import { SourceDocument } from '../types';
+import { SourceDocument, TrainingDatabase } from '../types';
 
 const DB_NAME = 'antelito_library';
 const STORE_KEY = 'documents';
+const TRAINING_DB_KEY = 'training_databases';
 
 localforage.config({
   name: 'AntelitoApp',
@@ -64,4 +65,22 @@ export const exportLibrary = async (documents: SourceDocument[]) => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+};
+
+export const saveTrainingDatabases = async (databases: TrainingDatabase[]) => {
+  try {
+    await localforage.setItem(TRAINING_DB_KEY, databases);
+  } catch (err) {
+    console.error('Error saving training databases:', err);
+  }
+};
+
+export const loadTrainingDatabases = async (): Promise<TrainingDatabase[]> => {
+  try {
+    const databases = await localforage.getItem<TrainingDatabase[]>(TRAINING_DB_KEY);
+    return databases || [];
+  } catch (err) {
+    console.error('Error loading training databases:', err);
+    return [];
+  }
 };

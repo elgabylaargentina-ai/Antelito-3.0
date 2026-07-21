@@ -6,6 +6,19 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   return {
     plugins: [react()],
+    server: {
+      host: '0.0.0.0',
+      port: 3000,
+      strictPort: true,
+    },
+    optimizeDeps: {
+      esbuildOptions: {
+        target: 'esnext',
+      },
+    },
+    esbuild: {
+      target: 'esnext',
+    },
     build: {
       target: 'esnext', // Crucial para soportar Top-Level Await usado por pdfjs-dist
     },

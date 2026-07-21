@@ -4,6 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Antelito 3.0</title>
+    <script>
+      // Prevent "Cannot set property fetch of #<Window> which has only a getter" in sandboxed/iframe environments
+      (function() {
+        const originalFetch = window.fetch;
+        try {
+          Object.defineProperty(window, 'fetch', {
+            get() {
+              return originalFetch;
+            },
+            set(val) {
+              console.warn('Attempted to reassign window.fetch, ignored:', val);
+            },
+            configurable: true,
+            enumerable: true
+          });
+        } catch (e) {
+          console.error('Failed to patch fetch property:', e);
+        }
+      })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

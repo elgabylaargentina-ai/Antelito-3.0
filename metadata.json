@@ -1,5 +1,6 @@
 {
   "name": "Antelito 3.0",
   "description": "Una aplicación de chat sofisticada con una mascota virtual, lista para Vercel. Cuenta con respuestas en streaming, renderizado markdown y soporte multimodal usando la API Gemini 2.5 Flash.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

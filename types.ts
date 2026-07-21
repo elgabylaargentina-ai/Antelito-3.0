@@ -35,3 +35,11 @@ export interface ChatSession {
   messages: Message[];
   createdAt: number;
 }
+
+export interface TrainingDatabase {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: number;
+  documents: SourceDocument[];
+}
