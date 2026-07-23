@@ -94,7 +94,7 @@ export const generateTrainingComparison = async (
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3.5-flash',
+    model: 'gemini-2.5-flash',
     contents: prompt,
     config: {
       responseMimeType: 'application/json',
@@ -157,11 +157,15 @@ export const generateTrainingComparison = async (
   });
 
   try {
-    return JSON.parse(response.text || '{}');
+    const rawText = response.text || '';
+    if (!rawText || rawText === 'undefined') {
+      throw new Error("Respuesta vacía o inválida del modelo");
+    }
+    return JSON.parse(rawText);
   } catch (e) {
     console.error("Failed to parse training comparison response:", e);
     return {
-      summary: response.text || "Error al generar el informe en formato estructurado.",
+      summary: (response.text && response.text !== 'undefined') ? response.text : "Error al generar el informe en formato estructurado.",
       differences: [],
       learningPath: [],
       quiz: []
@@ -185,7 +189,7 @@ export const createTrainingChatSession = (dbName: string, dbContent: string) => 
   `;
 
   return ai.chats.create({
-    model: 'gemini-3.5-flash',
+    model: 'gemini-2.5-flash',
     config: {
       systemInstruction: instruction,
     },

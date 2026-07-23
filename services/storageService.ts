@@ -26,7 +26,10 @@ const loadGlobalLibrary = async (): Promise<SourceDocument[]> => {
   try {
     const response = await fetch('/library.json');
     if (!response.ok) return [];
-    const globalDocs: SourceDocument[] = await response.json();
+    const text = await response.text();
+    if (!text || text.trim() === '' || text.trim() === 'undefined') return [];
+    const globalDocs: SourceDocument[] = JSON.parse(text);
+    if (!Array.isArray(globalDocs)) return [];
     // Asegurarnos de que tengan el flag readOnly y estén seleccionados por defecto
     return globalDocs.map(doc => ({ ...doc, readOnly: true, isSelected: true }));
   } catch (error) {
