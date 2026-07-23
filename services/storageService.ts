@@ -1,5 +1,5 @@
 import localforage from 'localforage';
-import { SourceDocument, TrainingDatabase, VisitStats } from '../types';
+import { SourceDocument, TrainingDatabase, VisitStats, VisitLogEntry } from '../types';
 
 const DB_NAME = 'antelito_library';
 const STORE_KEY = 'documents';
@@ -92,10 +92,10 @@ export const loadTrainingDatabases = async (): Promise<TrainingDatabase[]> => {
 export const getVisitStats = async (): Promise<VisitStats> => {
   try {
     const stats = await localforage.getItem<VisitStats>(VISIT_STATS_KEY);
-    return stats || { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0 };
+    return stats || { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0, history: [] };
   } catch (err) {
     console.error('Error loading visit stats:', err);
-    return { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0 };
+    return { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0, history: [] };
   }
 };
 
@@ -108,22 +108,56 @@ export const recordAppVisit = async (): Promise<VisitStats> => {
       sessionStorage.setItem('antelito_visited', 'true');
     }
 
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('es-ES', { 
+      weekday: 'short', 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+    const timeStr = now.toLocaleTimeString('es-ES', { 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    });
+
+    const newLogEntry: VisitLogEntry = {
+      id: `v_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      timestamp: Date.now(),
+      dateStr,
+      timeStr,
+      isNewSession
+    };
+
+    const existingHistory = Array.isArray(currentStats.history) ? currentStats.history : [];
+    // Save up to 300 entries, most recent first
+    const updatedHistory = [newLogEntry, ...existingHistory].slice(0, 300);
+
     const updatedStats: VisitStats = {
       totalVisits: (currentStats.totalVisits || 0) + 1,
       lastVisit: Date.now(),
-      sessionVisits: (currentStats.sessionVisits || 0) + (isNewSession ? 1 : 0)
+      sessionVisits: (currentStats.sessionVisits || 0) + (isNewSession ? 1 : 0),
+      history: updatedHistory
     };
 
     await localforage.setItem(VISIT_STATS_KEY, updatedStats);
     return updatedStats;
   } catch (err) {
     console.error('Error recording app visit:', err);
-    return { totalVisits: 1, lastVisit: Date.now(), sessionVisits: 1 };
+    const now = new Date();
+    const fallbackEntry: VisitLogEntry = {
+      id: `v_${Date.now()}`,
+      timestamp: Date.now(),
+      dateStr: now.toLocaleDateString('es-ES'),
+      timeStr: now.toLocaleTimeString('es-ES'),
+      isNewSession: true
+    };
+    return { totalVisits: 1, lastVisit: Date.now(), sessionVisits: 1, history: [fallbackEntry] };
   }
 };
 
 export const resetVisitStats = async (): Promise<VisitStats> => {
-  const initial: VisitStats = { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0 };
+  const initial: VisitStats = { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0, history: [] };
   try {
     await localforage.setItem(VISIT_STATS_KEY, initial);
   } catch (err) {

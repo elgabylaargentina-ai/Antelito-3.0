@@ -7,6 +7,7 @@ import LibrarySidebar from './components/LibrarySidebar';
 import LoginScreen from './components/LoginScreen'; // Import login screen
 import DeveloperSignature from './components/DeveloperSignature'; // Import signature
 import TrainingManager from './components/TrainingManager'; // Import TrainingManager
+import VisitHistoryModal from './components/VisitHistoryModal'; // Import VisitHistoryModal
 import { createChatSession, sendMessageStream } from './services/geminiService';
 import { extractTextFromPDF } from './services/pdfService';
 import { saveLibrary, loadLibrary, exportLibrary, recordAppVisit, resetVisitStats } from './services/storageService';
@@ -29,6 +30,7 @@ const App: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [visitStats, setVisitStats] = useState<VisitStats>({ totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0 });
+  const [showVisitHistoryModal, setShowVisitHistoryModal] = useState(false);
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -347,6 +349,7 @@ const App: React.FC = () => {
             userRole={userRole}
             visitStats={visitStats}
             onResetVisits={handleResetVisits}
+            onOpenVisitHistory={() => setShowVisitHistoryModal(true)}
             onClose={() => setSidebarOpen(false)} // Pass close handler for mobile
         />
       </div>
@@ -381,13 +384,14 @@ const App: React.FC = () => {
           {userRole === 'admin' && (
             <div className="flex items-center gap-2">
               {/* Counter Badge */}
-              <div 
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/80 text-blue-800 border border-blue-200/80 rounded-xl text-[10px] md:text-xs font-bold shadow-sm"
-                title="Conteo general de visitas a la aplicación"
+              <button 
+                onClick={() => setShowVisitHistoryModal(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/80 hover:bg-blue-100/90 active:scale-95 text-blue-800 border border-blue-200/80 rounded-xl text-[10px] md:text-xs font-bold shadow-sm transition-all cursor-pointer"
+                title="Ver historial detallado de día y hora de visitas"
               >
                 <Eye size={13} className="text-blue-600 shrink-0" />
                 <span>{visitStats.totalVisits} <span className="hidden sm:inline">visitas</span></span>
-              </div>
+              </button>
 
               <div className="flex bg-slate-100 p-0.5 md:p-1 rounded-xl border border-slate-200/60 scale-90 md:scale-100">
                 <button
@@ -480,6 +484,16 @@ const App: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Admin Visit History Modal */}
+      {userRole === 'admin' && (
+        <VisitHistoryModal
+          isOpen={showVisitHistoryModal}
+          onClose={() => setShowVisitHistoryModal(false)}
+          visitStats={visitStats}
+          onResetVisits={handleResetVisits}
+        />
+      )}
     </div>
   );
 };

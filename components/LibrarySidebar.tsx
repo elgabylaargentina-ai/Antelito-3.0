@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { SourceDocument, UserRole, VisitStats } from '../types';
-import { FileText, Upload, Trash2, FileCheck, Info, Download, Archive, Loader2, Lock, Unlock, Database, X, Eye, RotateCcw } from 'lucide-react';
+import { FileText, Upload, Trash2, FileCheck, Info, Download, Archive, Loader2, Lock, Unlock, Database, X, Eye, RotateCcw, History, Clock } from 'lucide-react';
 
 interface LibrarySidebarProps {
   documents: SourceDocument[];
@@ -14,6 +14,7 @@ interface LibrarySidebarProps {
   userRole: UserRole;
   visitStats?: VisitStats;
   onResetVisits?: () => void;
+  onOpenVisitHistory?: () => void;
   onClose?: () => void; // New prop for mobile
 }
 
@@ -29,6 +30,7 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   userRole,
   visitStats,
   onResetVisits,
+  onOpenVisitHistory,
   onClose
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -111,7 +113,7 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
       <div className="flex-1 overflow-y-auto p-3 space-y-2 relative">
         {/* Admin Visit Counter Widget */}
         {isAdmin && visitStats && (
-          <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl shadow-sm border border-blue-500/20 mb-2">
+          <div className="p-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-900 text-white rounded-xl shadow-sm border border-blue-500/20 mb-2">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 <Eye size={14} className="text-blue-200" />
@@ -132,13 +134,29 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
                 </button>
               )}
             </div>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-2xl font-black">{visitStats.totalVisits}</span>
-              <span className="text-xs text-blue-100 font-medium">visitas generales</span>
+            
+            <div className="flex items-baseline justify-between mt-1">
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-black">{visitStats.totalVisits}</span>
+                <span className="text-xs text-blue-100 font-medium">visitas generales</span>
+              </div>
             </div>
-            <div className="mt-2 pt-2 border-t border-white/10 flex justify-between text-[10px] text-blue-100">
-              <span>Sesiones: <strong>{visitStats.sessionVisits || 1}</strong></span>
-              <span>Última: <strong>{new Date(visitStats.lastVisit).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+
+            <div className="mt-2 pt-2 border-t border-white/10 space-y-1.5">
+              <div className="flex justify-between text-[10px] text-blue-100">
+                <span>Sesiones: <strong>{visitStats.sessionVisits || 1}</strong></span>
+                <span>Última: <strong>{new Date(visitStats.lastVisit).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+              </div>
+
+              {onOpenVisitHistory && (
+                <button
+                  onClick={onOpenVisitHistory}
+                  className="w-full mt-1.5 py-1.5 px-2.5 bg-white/15 hover:bg-white/25 active:scale-[0.98] transition-all rounded-lg text-xs font-bold text-white flex items-center justify-center gap-1.5 border border-white/10 shadow-2xs"
+                >
+                  <History size={13} className="text-blue-200" />
+                  <span>Ver registro de día y hora ({visitStats.history?.length || 0})</span>
+                </button>
+              )}
             </div>
           </div>
         )}

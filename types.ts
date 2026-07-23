@@ -44,8 +44,17 @@ export interface TrainingDatabase {
   documents: SourceDocument[];
 }
 
+export interface VisitLogEntry {
+  id: string;
+  timestamp: number;
+  dateStr: string;
+  timeStr: string;
+  isNewSession?: boolean;
+}
+
 export interface VisitStats {
   totalVisits: number;
   lastVisit: number;
   sessionVisits: number;
+  history?: VisitLogEntry[];
 }
