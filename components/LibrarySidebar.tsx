@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { SourceDocument, UserRole } from '../types';
-import { FileText, Upload, Trash2, FileCheck, Info, Download, Archive, Loader2, Lock, Unlock, Database, X } from 'lucide-react';
+import { SourceDocument, UserRole, VisitStats } from '../types';
+import { FileText, Upload, Trash2, FileCheck, Info, Download, Archive, Loader2, Lock, Unlock, Database, X, Eye, RotateCcw } from 'lucide-react';
 
 interface LibrarySidebarProps {
   documents: SourceDocument[];
@@ -12,6 +12,8 @@ interface LibrarySidebarProps {
   onToggleGlobal?: (id: string) => void;
   isProcessing: boolean;
   userRole: UserRole;
+  visitStats?: VisitStats;
+  onResetVisits?: () => void;
   onClose?: () => void; // New prop for mobile
 }
 
@@ -25,6 +27,8 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
   onToggleGlobal,
   isProcessing,
   userRole,
+  visitStats,
+  onResetVisits,
   onClose
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,6 +109,40 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2 relative">
+        {/* Admin Visit Counter Widget */}
+        {isAdmin && visitStats && (
+          <div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl shadow-sm border border-blue-500/20 mb-2">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <Eye size={14} className="text-blue-200" />
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-100">Contador de Visitas</span>
+              </div>
+              {onResetVisits && (
+                <button
+                  onClick={() => {
+                    if (confirm('¿Deseas reiniciar el contador general de visitas?')) {
+                      onResetVisits();
+                    }
+                  }}
+                  className="text-[10px] text-blue-200 hover:text-white hover:underline flex items-center gap-1 p-0.5"
+                  title="Reiniciar contador de visitas"
+                >
+                  <RotateCcw size={10} />
+                  <span>Reiniciar</span>
+                </button>
+              )}
+            </div>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-2xl font-black">{visitStats.totalVisits}</span>
+              <span className="text-xs text-blue-100 font-medium">visitas generales</span>
+            </div>
+            <div className="mt-2 pt-2 border-t border-white/10 flex justify-between text-[10px] text-blue-100">
+              <span>Sesiones: <strong>{visitStats.sessionVisits || 1}</strong></span>
+              <span>Última: <strong>{new Date(visitStats.lastVisit).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</strong></span>
+            </div>
+          </div>
+        )}
+
         {isDragging && (
             <div className="absolute inset-0 z-10 bg-yellow-100/80 border-2 border-dashed border-yellow-400 m-2 rounded-xl flex items-center justify-center pointer-events-none">
                 <div className="text-center text-yellow-700">

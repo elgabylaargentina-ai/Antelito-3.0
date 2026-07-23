@@ -43,3 +43,9 @@ export interface TrainingDatabase {
   createdAt: number;
   documents: SourceDocument[];
 }
+
+export interface VisitStats {
+  totalVisits: number;
+  lastVisit: number;
+  sessionVisits: number;
+}

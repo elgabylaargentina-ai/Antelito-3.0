@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Message, Role, Attachment, SourceDocument, UserRole } from './types';
+import { Message, Role, Attachment, SourceDocument, UserRole, VisitStats } from './types';
 import MessageItem from './components/MessageItem';
 import ChatInput from './components/ChatInput';
 import Mascot from './components/Mascot';
@@ -9,9 +9,9 @@ import DeveloperSignature from './components/DeveloperSignature'; // Import sign
 import TrainingManager from './components/TrainingManager'; // Import TrainingManager
 import { createChatSession, sendMessageStream } from './services/geminiService';
 import { extractTextFromPDF } from './services/pdfService';
-import { saveLibrary, loadLibrary, exportLibrary } from './services/storageService';
+import { saveLibrary, loadLibrary, exportLibrary, recordAppVisit, resetVisitStats } from './services/storageService';
 import { GenerateContentResponse, Chat } from '@google/genai';
-import { Menu, RefreshCw, LogOut } from 'lucide-react';
+import { Menu, RefreshCw, LogOut, Eye } from 'lucide-react';
 
 const App: React.FC = () => {
   // Auth State
@@ -28,18 +28,26 @@ const App: React.FC = () => {
   const [isProcessingDocs, setIsProcessingDocs] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [visitStats, setVisitStats] = useState<VisitStats>({ totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0 });
   
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load Library on Mount
+  // Load Library & Record App Visit on Mount
   useEffect(() => {
       const initLibrary = async () => {
           const docs = await loadLibrary();
           setDocuments(docs);
+          const stats = await recordAppVisit();
+          setVisitStats(stats);
       };
       initLibrary();
   }, []);
+
+  const handleResetVisits = async () => {
+      const reset = await resetVisitStats();
+      setVisitStats(reset);
+  };
 
   // Save Library on Change
   useEffect(() => {
@@ -337,6 +345,8 @@ const App: React.FC = () => {
             onToggleGlobal={handleToggleGlobal}
             isProcessing={isProcessingDocs}
             userRole={userRole}
+            visitStats={visitStats}
+            onResetVisits={handleResetVisits}
             onClose={() => setSidebarOpen(false)} // Pass close handler for mobile
         />
       </div>
@@ -367,29 +377,40 @@ const App: React.FC = () => {
              </div>
           </div>
 
-          {/* Admin Navigation Selector */}
+          {/* Admin Navigation Selector & Visit Counter */}
           {userRole === 'admin' && (
-            <div className="flex bg-slate-100 p-0.5 md:p-1 rounded-xl border border-slate-200/60 scale-90 md:scale-100">
-              <button
-                onClick={() => setAdminView('chat')}
-                className={`px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all ${
-                  adminView === 'chat' 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-800'
-                }`}
+            <div className="flex items-center gap-2">
+              {/* Counter Badge */}
+              <div 
+                className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/80 text-blue-800 border border-blue-200/80 rounded-xl text-[10px] md:text-xs font-bold shadow-sm"
+                title="Conteo general de visitas a la aplicación"
               >
-                Chat General
-              </button>
-              <button
-                onClick={() => setAdminView('training')}
-                className={`px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all ${
-                  adminView === 'training' 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                Agente IA
-              </button>
+                <Eye size={13} className="text-blue-600 shrink-0" />
+                <span>{visitStats.totalVisits} <span className="hidden sm:inline">visitas</span></span>
+              </div>
+
+              <div className="flex bg-slate-100 p-0.5 md:p-1 rounded-xl border border-slate-200/60 scale-90 md:scale-100">
+                <button
+                  onClick={() => setAdminView('chat')}
+                  className={`px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all ${
+                    adminView === 'chat' 
+                      ? 'bg-white text-blue-600 shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-800'
+                  }`}
+                >
+                  Chat General
+                </button>
+                <button
+                  onClick={() => setAdminView('training')}
+                  className={`px-2.5 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all ${
+                    adminView === 'training' 
+                      ? 'bg-white text-blue-600 shadow-sm' 
+                      : 'text-slate-600 hover:text-slate-800'
+                  }`}
+                >
+                  Agente IA
+                </button>
+              </div>
             </div>
           )}
           

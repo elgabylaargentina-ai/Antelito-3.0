@@ -1,9 +1,10 @@
 import localforage from 'localforage';
-import { SourceDocument, TrainingDatabase } from '../types';
+import { SourceDocument, TrainingDatabase, VisitStats } from '../types';
 
 const DB_NAME = 'antelito_library';
 const STORE_KEY = 'documents';
 const TRAINING_DB_KEY = 'training_databases';
+const VISIT_STATS_KEY = 'app_visit_stats';
 
 localforage.config({
   name: 'AntelitoApp',
@@ -83,4 +84,47 @@ export const loadTrainingDatabases = async (): Promise<TrainingDatabase[]> => {
     console.error('Error loading training databases:', err);
     return [];
   }
+};
+
+export const getVisitStats = async (): Promise<VisitStats> => {
+  try {
+    const stats = await localforage.getItem<VisitStats>(VISIT_STATS_KEY);
+    return stats || { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0 };
+  } catch (err) {
+    console.error('Error loading visit stats:', err);
+    return { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0 };
+  }
+};
+
+export const recordAppVisit = async (): Promise<VisitStats> => {
+  try {
+    const currentStats = await getVisitStats();
+    const isNewSession = !sessionStorage.getItem('antelito_visited');
+    
+    if (isNewSession) {
+      sessionStorage.setItem('antelito_visited', 'true');
+    }
+
+    const updatedStats: VisitStats = {
+      totalVisits: (currentStats.totalVisits || 0) + 1,
+      lastVisit: Date.now(),
+      sessionVisits: (currentStats.sessionVisits || 0) + (isNewSession ? 1 : 0)
+    };
+
+    await localforage.setItem(VISIT_STATS_KEY, updatedStats);
+    return updatedStats;
+  } catch (err) {
+    console.error('Error recording app visit:', err);
+    return { totalVisits: 1, lastVisit: Date.now(), sessionVisits: 1 };
+  }
+};
+
+export const resetVisitStats = async (): Promise<VisitStats> => {
+  const initial: VisitStats = { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0 };
+  try {
+    await localforage.setItem(VISIT_STATS_KEY, initial);
+  } catch (err) {
+    console.error('Error resetting visit stats:', err);
+  }
+  return initial;
 };
