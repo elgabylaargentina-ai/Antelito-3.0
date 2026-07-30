@@ -96,7 +96,10 @@ export const loadTrainingDatabases = async (): Promise<TrainingDatabase[]> => {
 
 export const getVisitStats = async (): Promise<VisitStats> => {
   try {
-    const res = await fetch('/api/visits');
+    const res = await fetch(`/api/visits?t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Pragma': 'no-cache' }
+    });
     if (res.ok) {
       const text = await res.text();
       if (text && text.trim() !== '' && text.trim() !== 'undefined' && !text.trim().startsWith('<')) {
@@ -157,9 +160,13 @@ export const recordAppVisit = async (): Promise<VisitStats> => {
   const clientMetrics = getClientMetrics();
 
   try {
-    const res = await fetch('/api/visits/record', {
+    const res = await fetch(`/api/visits/record?t=${Date.now()}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Pragma': 'no-cache'
+      },
       body: JSON.stringify({
         isNewSession,
         ...clientMetrics
@@ -216,7 +223,11 @@ export const recordAppVisit = async (): Promise<VisitStats> => {
 
 export const resetVisitStats = async (): Promise<VisitStats> => {
   try {
-    const res = await fetch('/api/visits/reset', { method: 'POST' });
+    const res = await fetch(`/api/visits/reset?t=${Date.now()}`, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Pragma': 'no-cache' }
+    });
     if (res.ok) {
       const text = await res.text();
       if (text && text.trim() !== '' && text.trim() !== 'undefined' && !text.trim().startsWith('<')) {

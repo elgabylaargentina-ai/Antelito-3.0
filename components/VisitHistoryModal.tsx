@@ -7,13 +7,15 @@ interface VisitHistoryModalProps {
   onClose: () => void;
   visitStats: VisitStats;
   onResetVisits?: () => void;
+  onRefreshVisits?: () => void;
 }
 
 const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
   isOpen,
   onClose,
   visitStats,
-  onResetVisits
+  onResetVisits,
+  onRefreshVisits
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSessionOnly, setFilterSessionOnly] = useState(false);
@@ -138,6 +140,17 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {onRefreshVisits && (
+              <button
+                onClick={onRefreshVisits}
+                className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
+                title="Actualizar datos del servidor ahora"
+              >
+                <RotateCcw size={13} className="text-blue-600" />
+                <span>Actualizar</span>
+              </button>
+            )}
+
             <button
               onClick={() => setFilterSessionOnly(!filterSessionOnly)}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors flex items-center gap-1.5 ${

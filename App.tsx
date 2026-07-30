@@ -35,6 +35,18 @@ const App: React.FC = () => {
   // Refs
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const handleRefreshVisits = async () => {
+    const latest = await getVisitStats();
+    if (latest && typeof latest.totalVisits === 'number') {
+      setVisitStats(latest);
+    }
+  };
+
+  const handleOpenVisitHistory = async () => {
+    setShowVisitHistoryModal(true);
+    await handleRefreshVisits();
+  };
+
   // Load Library & Record App Visit on Mount
   useEffect(() => {
       const initLibrary = async () => {
@@ -45,13 +57,13 @@ const App: React.FC = () => {
       };
       initLibrary();
 
-      // Poll server every 10 seconds to keep visit stats synced across devices
+      // Poll server every 3 seconds to keep visit stats live across devices
       const interval = setInterval(async () => {
           const latestStats = await getVisitStats();
           if (latestStats && typeof latestStats.totalVisits === 'number') {
               setVisitStats(latestStats);
           }
-      }, 10000);
+      }, 3000);
 
       return () => clearInterval(interval);
   }, []);
@@ -394,7 +406,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-2">
             {/* Counter Badge */}
             <button 
-              onClick={() => setShowVisitHistoryModal(true)}
+              onClick={handleOpenVisitHistory}
               className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/80 hover:bg-blue-100/90 active:scale-95 text-blue-800 border border-blue-200/80 rounded-xl text-[10px] md:text-xs font-bold shadow-sm transition-all cursor-pointer"
               title="Ver registro global de visitas (IP, Dispositivo, Hora y Fecha)"
             >
@@ -501,6 +513,7 @@ const App: React.FC = () => {
         onClose={() => setShowVisitHistoryModal(false)}
         visitStats={visitStats}
         onResetVisits={userRole === 'admin' ? handleResetVisits : undefined}
+        onRefreshVisits={handleRefreshVisits}
       />
     </div>
   );

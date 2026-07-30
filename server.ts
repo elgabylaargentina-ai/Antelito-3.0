@@ -214,12 +214,21 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Anti-caching middleware for all /api requests
+  app.use("/api", (req, res, next) => {
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
+    res.setHeader("Surrogate-Control", "no-store");
+    next();
+  });
+
   // API Routes
-  app.get("/api/visits", (req, res) => {
+  app.get(["/api/visits", "/api/visits/"], (req, res) => {
     res.json(currentStats);
   });
 
-  app.post("/api/visits/record", (req, res) => {
+  app.post(["/api/visits/record", "/api/visits/record/"], (req, res) => {
     try {
       const isNewSession = req.body?.isNewSession ?? true;
       const ua = req.headers["user-agent"];
@@ -277,7 +286,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/visits/reset", (req, res) => {
+  app.post(["/api/visits/reset", "/api/visits/reset/"], (req, res) => {
     currentStats = {
       totalVisits: 0,
       lastVisit: Date.now(),
