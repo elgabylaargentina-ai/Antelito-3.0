@@ -49,23 +49,31 @@ const App: React.FC = () => {
 
   // Load Library & Record App Visit on Mount
   useEffect(() => {
-      const initLibrary = async () => {
-          const docs = await loadLibrary();
-          setDocuments(docs);
-          const stats = await recordAppVisit();
+    // 1. Immediately record visit from this terminal/device
+    recordAppVisit()
+      .then(stats => {
+        if (stats && typeof stats.totalVisits === 'number') {
           setVisitStats(stats);
-      };
-      initLibrary();
+        }
+      })
+      .catch(err => console.warn('Error recording visit on mount:', err));
 
-      // Poll server every 3 seconds to keep visit stats live across devices
-      const interval = setInterval(async () => {
-          const latestStats = await getVisitStats();
-          if (latestStats && typeof latestStats.totalVisits === 'number') {
-              setVisitStats(latestStats);
-          }
-      }, 3000);
+    // 2. Load documents asynchronously
+    loadLibrary()
+      .then(docs => {
+        if (docs) setDocuments(docs);
+      })
+      .catch(err => console.warn('Error loading library on mount:', err));
 
-      return () => clearInterval(interval);
+    // 3. Poll server every 2 seconds to keep visit stats synced in real-time across all devices
+    const interval = setInterval(async () => {
+      const latestStats = await getVisitStats();
+      if (latestStats && typeof latestStats.totalVisits === 'number') {
+        setVisitStats(latestStats);
+      }
+    }, 2000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleResetVisits = async () => {

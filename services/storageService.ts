@@ -127,7 +127,7 @@ export const getVisitStats = async (): Promise<VisitStats> => {
   }
 };
 
-function getClientMetrics() {
+async function getClientMetrics() {
   if (typeof window === 'undefined') return {};
   
   let timezone = '';
@@ -142,12 +142,29 @@ function getClientMetrics() {
   const ua = navigator.userAgent || '';
   const platform = navigator.platform || '';
 
+  let clientIp: string | undefined = undefined;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1200);
+    const ipRes = await fetch('https://api.ipify.org?format=json', { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (ipRes.ok) {
+      const ipData = await ipRes.json();
+      if (ipData && ipData.ip) {
+        clientIp = ipData.ip;
+      }
+    }
+  } catch (e) {
+    // Ignore IP lookup failure
+  }
+
   return {
     userAgent: ua,
     screenRes,
     language,
     timezone,
-    platform
+    platform,
+    clientIp
   };
 }
 
@@ -157,7 +174,7 @@ export const recordAppVisit = async (): Promise<VisitStats> => {
     sessionStorage.setItem('antelito_visited', 'true');
   }
 
-  const clientMetrics = getClientMetrics();
+  const clientMetrics = await getClientMetrics();
 
   try {
     const res = await fetch(`/api/visits/record?t=${Date.now()}`, {

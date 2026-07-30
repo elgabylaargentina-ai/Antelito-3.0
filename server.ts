@@ -213,6 +213,7 @@ async function startServer() {
   });
 
   app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
   // Anti-caching middleware for all /api requests
   app.use("/api", (req, res, next) => {
@@ -234,9 +235,27 @@ async function startServer() {
       const ua = req.headers["user-agent"];
       const clientDetails = parseUserAgentDetails(ua, req.body);
 
-      const forwarded = req.headers["x-forwarded-for"] || req.headers["x-real-ip"];
-      let clientIp = typeof forwarded === "string" ? forwarded.split(",")[0].trim() : (req.socket?.remoteAddress || req.ip || "127.0.0.1");
-      if (clientIp.startsWith("::ffff:")) {
+      // Extract client IP with fallback priority
+      let clientIp = req.body?.clientIp;
+      if (!clientIp || typeof clientIp !== "string" || clientIp === "127.0.0.1" || clientIp === "::1") {
+        const xForwardedFor = req.headers["x-forwarded-for"];
+        if (typeof xForwardedFor === "string" && xForwardedFor.trim()) {
+          clientIp = xForwardedFor.split(",")[0].trim();
+        } else if (Array.isArray(xForwardedFor) && xForwardedFor.length > 0) {
+          clientIp = xForwardedFor[0].split(",")[0].trim();
+        } else {
+          const xRealIp = req.headers["x-real-ip"] || req.headers["cf-connecting-ip"];
+          if (typeof xRealIp === "string" && xRealIp.trim()) {
+            clientIp = xRealIp.split(",")[0].trim();
+          } else if (Array.isArray(xRealIp) && xRealIp.length > 0) {
+            clientIp = xRealIp[0].trim();
+          } else {
+            clientIp = req.socket?.remoteAddress || req.ip || "127.0.0.1";
+          }
+        }
+      }
+
+      if (typeof clientIp === "string" && clientIp.startsWith("::ffff:")) {
         clientIp = clientIp.replace("::ffff:", "");
       }
 
@@ -260,7 +279,7 @@ async function startServer() {
         timeStr,
         isNewSession,
         deviceInfo: clientDetails.deviceInfo,
-        ip: clientIp,
+        ip: clientIp || "127.0.0.1",
         browser: clientDetails.browser,
         os: clientDetails.os,
         screenRes: clientDetails.screenRes,
@@ -279,6 +298,7 @@ async function startServer() {
       };
 
       saveStats(currentStats);
+      console.log(`[VISIT LOGGED] #${currentStats.totalVisits} | IP: ${newEntry.ip} | Device: ${newEntry.deviceInfo} | Loc: ${newEntry.location}`);
       res.json(currentStats);
     } catch (err) {
       console.error("Error recording visit:", err);
