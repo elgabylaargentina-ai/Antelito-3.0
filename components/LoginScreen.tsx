@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import Mascot from './Mascot';
-import { User, ShieldCheck, ArrowRight, Lock } from 'lucide-react';
-import { UserRole } from '../types';
+import { User, ShieldCheck, ArrowRight, Lock, Eye } from 'lucide-react';
+import { UserRole, VisitStats } from '../types';
 import DeveloperSignature from './DeveloperSignature';
 
 interface LoginScreenProps {
   onLogin: (role: UserRole) => void;
+  visitStats?: VisitStats;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, visitStats }) => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
@@ -108,7 +109,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             )}
         </div>
         
-        <p className="mt-8 text-[10px] md:text-xs text-slate-400">© 2024 Antelito AI - v3.0</p>
+        {visitStats && (
+          <div className="mt-4 px-3.5 py-1.5 bg-white border border-slate-200/80 rounded-full text-slate-700 text-xs font-bold flex items-center gap-2 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <Eye size={14} className="text-blue-600 shrink-0" />
+            <span>{visitStats.totalVisits} {visitStats.totalVisits === 1 ? 'visita registrada' : 'visitas registradas en vivo'}</span>
+          </div>
+        )}
+
+        <p className="mt-6 text-[10px] md:text-xs text-slate-400">© 2024 Antelito AI - v3.0</p>
       </div>
     </div>
   );

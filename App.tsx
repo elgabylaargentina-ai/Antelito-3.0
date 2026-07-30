@@ -326,7 +326,7 @@ const App: React.FC = () => {
 
   // If not logged in, show Login Screen
   if (!userRole) {
-      return <LoginScreen onLogin={handleLogin} />;
+      return <LoginScreen onLogin={handleLogin} visitStats={visitStats} />;
   }
 
   return (
@@ -390,19 +390,19 @@ const App: React.FC = () => {
              </div>
           </div>
 
-          {/* Admin Navigation Selector & Visit Counter */}
-          {userRole === 'admin' && (
-            <div className="flex items-center gap-2">
-              {/* Counter Badge */}
-              <button 
-                onClick={() => setShowVisitHistoryModal(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/80 hover:bg-blue-100/90 active:scale-95 text-blue-800 border border-blue-200/80 rounded-xl text-[10px] md:text-xs font-bold shadow-sm transition-all cursor-pointer"
-                title="Ver historial detallado de día y hora de visitas"
-              >
-                <Eye size={13} className="text-blue-600 shrink-0" />
-                <span>{visitStats.totalVisits} <span className="hidden sm:inline">visitas</span></span>
-              </button>
+          {/* Header Visit Counter & Navigation Selector */}
+          <div className="flex items-center gap-2">
+            {/* Counter Badge */}
+            <button 
+              onClick={() => setShowVisitHistoryModal(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50/80 hover:bg-blue-100/90 active:scale-95 text-blue-800 border border-blue-200/80 rounded-xl text-[10px] md:text-xs font-bold shadow-sm transition-all cursor-pointer"
+              title="Ver registro global de visitas (IP, Dispositivo, Hora y Fecha)"
+            >
+              <Eye size={13} className="text-blue-600 shrink-0" />
+              <span>{visitStats.totalVisits} <span className="hidden sm:inline">visitas</span></span>
+            </button>
 
+            {userRole === 'admin' && (
               <div className="flex bg-slate-100 p-0.5 md:p-1 rounded-xl border border-slate-200/60 scale-90 md:scale-100">
                 <button
                   onClick={() => setAdminView('chat')}
@@ -425,8 +425,8 @@ const App: React.FC = () => {
                   Agente IA
                 </button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
           
           {/* Controls: Added right margin to avoid overlap with Developer Signature on desktop */}
           <div className="flex gap-1 md:gap-2 mr-0 md:mr-32 transition-all">
@@ -495,15 +495,13 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* Admin Visit History Modal */}
-      {userRole === 'admin' && (
-        <VisitHistoryModal
-          isOpen={showVisitHistoryModal}
-          onClose={() => setShowVisitHistoryModal(false)}
-          visitStats={visitStats}
-          onResetVisits={handleResetVisits}
-        />
-      )}
+      {/* Visit History Modal */}
+      <VisitHistoryModal
+        isOpen={showVisitHistoryModal}
+        onClose={() => setShowVisitHistoryModal(false)}
+        visitStats={visitStats}
+        onResetVisits={userRole === 'admin' ? handleResetVisits : undefined}
+      />
     </div>
   );
 };

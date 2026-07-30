@@ -111,15 +111,15 @@ const LibrarySidebar: React.FC<LibrarySidebarProps> = ({
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2 relative">
-        {/* Admin Visit Counter Widget */}
-        {isAdmin && visitStats && (
+        {/* Visit Counter Widget */}
+        {visitStats && (
           <div className="p-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-900 text-white rounded-xl shadow-sm border border-blue-500/20 mb-2">
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-1.5">
                 <Eye size={14} className="text-blue-200" />
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-100">Contador de Visitas</span>
               </div>
-              {onResetVisits && (
+              {isAdmin && onResetVisits && (
                 <button
                   onClick={() => {
                     if (confirm('¿Deseas reiniciar el contador general de visitas?')) {
