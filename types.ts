@@ -51,6 +51,7 @@ export interface VisitLogEntry {
   timeStr: string;
   isNewSession?: boolean;
   deviceInfo?: string;
+  ip?: string;
 }
 
 export interface VisitStats {

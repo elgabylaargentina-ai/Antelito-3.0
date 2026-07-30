@@ -105,6 +105,12 @@ async function startServer() {
       const ua = req.headers["user-agent"];
       const deviceInfo = parseDevice(ua);
 
+      const forwarded = req.headers["x-forwarded-for"];
+      let clientIp = typeof forwarded === "string" ? forwarded.split(",")[0].trim() : (req.socket?.remoteAddress || req.ip || "127.0.0.1");
+      if (clientIp.startsWith("::ffff:")) {
+        clientIp = clientIp.replace("::ffff:", "");
+      }
+
       const now = new Date();
       const dateStr = now.toLocaleDateString("es-ES", {
         weekday: "short",
@@ -124,7 +130,8 @@ async function startServer() {
         dateStr,
         timeStr,
         isNewSession,
-        deviceInfo
+        deviceInfo,
+        ip: clientIp
       };
 
       const updatedHistory = [newEntry, ...(currentStats.history || [])].slice(0, 500);
