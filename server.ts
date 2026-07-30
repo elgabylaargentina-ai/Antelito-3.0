@@ -68,24 +68,133 @@ function saveStats(stats: VisitStats) {
 
 let currentStats = loadStats();
 
-function parseDevice(ua: string | undefined): string {
-  if (!ua) return "Desconocido";
+function getLocationFromTimezone(tz: string | undefined, lang: string | undefined): string {
+  if (!tz) {
+    if (lang?.toLowerCase().includes('ar')) return 'Argentina';
+    if (lang?.toLowerCase().includes('es')) return 'España / Latam';
+    return 'Desconocida';
+  }
+  
+  const parts = tz.split('/');
+  const city = parts[parts.length - 1]?.replace(/_/g, ' ') || '';
+
+  const countryMap: Record<string, string> = {
+    'Buenos_Aires': 'Argentina',
+    'Cordoba': 'Argentina',
+    'Mendoza': 'Argentina',
+    'Catamarca': 'Argentina',
+    'Jujuy': 'Argentina',
+    'Ushuaia': 'Argentina',
+    'Santiago': 'Chile',
+    'Montevideo': 'Uruguay',
+    'Asuncion': 'Paraguay',
+    'Bogota': 'Colombia',
+    'Lima': 'Perú',
+    'Caracas': 'Venezuela',
+    'Mexico_City': 'México',
+    'Cancun': 'México',
+    'Guadalajara': 'México',
+    'Monterrey': 'México',
+    'Madrid': 'España',
+    'New_York': 'EE.UU. (EST)',
+    'Los_Angeles': 'EE.UU. (PST)',
+    'Chicago': 'EE.UU. (CST)',
+    'Miami': 'EE.UU.',
+    'Sao_Paulo': 'Brasil',
+    'La_Paz': 'Bolivia',
+    'Quito': 'Ecuador',
+    'Panama': 'Panamá',
+    'San_Jose': 'Costa Rica',
+    'Guatemala': 'Guatemala',
+    'San_Salvador': 'El Salvador',
+    'Tegucigalpa': 'Honduras',
+    'Managua': 'Nicaragua',
+    'Santo_Domingo': 'Rep. Dominicana',
+    'London': 'Reino Unido',
+    'Paris': 'Francia',
+    'Rome': 'Italia',
+    'Berlin': 'Alemania'
+  };
+
+  const matchedCountry = countryMap[parts[parts.length - 1]];
+  if (matchedCountry) {
+    return `${matchedCountry} (${city})`;
+  }
+
+  return `${city || tz}`;
+}
+
+function parseUserAgentDetails(rawUa: string | undefined, body: any) {
+  const ua = body?.userAgent || rawUa || "";
   const lower = ua.toLowerCase();
-  let os = "PC";
-  if (lower.includes("android")) os = "Android";
-  else if (lower.includes("iphone")) os = "iPhone";
-  else if (lower.includes("ipad")) os = "iPad";
-  else if (lower.includes("macintosh") || lower.includes("mac os")) os = "Mac";
-  else if (lower.includes("windows")) os = "Windows";
-  else if (lower.includes("linux")) os = "Linux";
+  
+  let os = "Desconocido";
+  let deviceType = "💻 PC / Escritorio";
+  
+  if (lower.includes("android")) {
+    os = "Android";
+    deviceType = lower.includes("mobile") ? "📱 Móvil (Android)" : "📱 Tablet (Android)";
+    const match = ua.match(/Android\s+([0-9\.]+)/i);
+    if (match) os = `Android ${match[1]}`;
+  } else if (lower.includes("iphone")) {
+    os = "iOS (iPhone)";
+    deviceType = "📱 Móvil (iPhone)";
+    const match = ua.match(/OS\s+([0-9_]+)/i);
+    if (match) os = `iOS ${match[1].replace(/_/g, '.')}`;
+  } else if (lower.includes("ipad")) {
+    os = "iPadOS";
+    deviceType = "📱 Tablet (iPad)";
+    const match = ua.match(/OS\s+([0-9_]+)/i);
+    if (match) os = `iPadOS ${match[1].replace(/_/g, '.')}`;
+  } else if (lower.includes("macintosh") || lower.includes("mac os")) {
+    os = "macOS";
+    deviceType = "💻 Mac";
+    const match = ua.match(/Mac OS X\s+([0-9_\.]+)/i);
+    if (match) os = `macOS ${match[1].replace(/_/g, '.')}`;
+  } else if (lower.includes("windows")) {
+    os = "Windows";
+    deviceType = "💻 PC (Windows)";
+    if (lower.includes("nt 10.0")) os = "Windows 10/11";
+    else if (lower.includes("nt 6.3")) os = "Windows 8.1";
+    else if (lower.includes("nt 6.1")) os = "Windows 7";
+  } else if (lower.includes("linux")) {
+    os = "Linux";
+    deviceType = "💻 PC (Linux)";
+  }
 
-  let browser = "";
-  if (lower.includes("chrome") || lower.includes("crios")) browser = "Chrome";
-  else if (lower.includes("safari")) browser = "Safari";
-  else if (lower.includes("firefox")) browser = "Firefox";
-  else if (lower.includes("edg")) browser = "Edge";
+  let browser = "Navegador Web";
+  if (lower.includes("edg/")) {
+    const match = ua.match(/Edg\/([0-9\.]+)/);
+    browser = `Edge ${match ? match[1].split('.')[0] : ''}`;
+  } else if (lower.includes("samsungbrowser")) {
+    const match = ua.match(/SamsungBrowser\/([0-9\.]+)/);
+    browser = `Samsung Internet ${match ? match[1].split('.')[0] : ''}`;
+  } else if (lower.includes("chrome") || lower.includes("crios")) {
+    const match = ua.match(/(?:Chrome|CriOS)\/([0-9\.]+)/);
+    browser = `Chrome ${match ? match[1].split('.')[0] : ''}`;
+  } else if (lower.includes("firefox") || lower.includes("fxios")) {
+    const match = ua.match(/(?:Firefox|FxiOS)\/([0-9\.]+)/);
+    browser = `Firefox ${match ? match[1].split('.')[0] : ''}`;
+  } else if (lower.includes("safari") && !lower.includes("chrome") && !lower.includes("android")) {
+    const match = ua.match(/Version\/([0-9\.]+)/);
+    browser = `Safari ${match ? match[1].split('.')[0] : ''}`;
+  }
 
-  return `${os}${browser ? " (" + browser + ")" : ""}`;
+  const screenRes = body?.screenRes || "No especificada";
+  const language = body?.language || "es";
+  const location = getLocationFromTimezone(body?.timezone, language);
+  const deviceInfoSummary = `${deviceType} • ${os} (${browser})`;
+
+  return {
+    os,
+    browser,
+    deviceType,
+    deviceInfo: deviceInfoSummary,
+    screenRes,
+    language,
+    location,
+    userAgent: ua
+  };
 }
 
 async function startServer() {
@@ -114,9 +223,9 @@ async function startServer() {
     try {
       const isNewSession = req.body?.isNewSession ?? true;
       const ua = req.headers["user-agent"];
-      const deviceInfo = parseDevice(ua);
+      const clientDetails = parseUserAgentDetails(ua, req.body);
 
-      const forwarded = req.headers["x-forwarded-for"];
+      const forwarded = req.headers["x-forwarded-for"] || req.headers["x-real-ip"];
       let clientIp = typeof forwarded === "string" ? forwarded.split(",")[0].trim() : (req.socket?.remoteAddress || req.ip || "127.0.0.1");
       if (clientIp.startsWith("::ffff:")) {
         clientIp = clientIp.replace("::ffff:", "");
@@ -141,8 +250,14 @@ async function startServer() {
         dateStr,
         timeStr,
         isNewSession,
-        deviceInfo,
-        ip: clientIp
+        deviceInfo: clientDetails.deviceInfo,
+        ip: clientIp,
+        browser: clientDetails.browser,
+        os: clientDetails.os,
+        screenRes: clientDetails.screenRes,
+        language: clientDetails.language,
+        location: clientDetails.location,
+        userAgent: clientDetails.userAgent
       };
 
       const updatedHistory = [newEntry, ...(currentStats.history || [])].slice(0, 500);

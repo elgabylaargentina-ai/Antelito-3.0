@@ -25,11 +25,16 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
 
   // Filter history
   const filteredHistory = history.filter((entry) => {
+    const term = searchTerm.toLowerCase();
     const matchesSearch =
-      entry.dateStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entry.timeStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (entry.deviceInfo && entry.deviceInfo.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (entry.ip && entry.ip.toLowerCase().includes(searchTerm.toLowerCase()));
+      entry.dateStr.toLowerCase().includes(term) ||
+      entry.timeStr.toLowerCase().includes(term) ||
+      (entry.deviceInfo && entry.deviceInfo.toLowerCase().includes(term)) ||
+      (entry.ip && entry.ip.toLowerCase().includes(term)) ||
+      (entry.browser && entry.browser.toLowerCase().includes(term)) ||
+      (entry.os && entry.os.toLowerCase().includes(term)) ||
+      (entry.location && entry.location.toLowerCase().includes(term)) ||
+      (entry.screenRes && entry.screenRes.toLowerCase().includes(term));
     const matchesSession = filterSessionOnly ? entry.isNewSession : true;
     return matchesSearch && matchesSession;
   });
@@ -47,11 +52,13 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
 
   const handleExportCSV = () => {
     if (history.length === 0) return;
-    const headers = 'ID,Fecha,Hora,IP,Dispositivo,Timestamp,Tipo\n';
+    const headers = 'ID,Fecha,Hora,IP,Dispositivo,Navegador,Ubicacion,Pantalla,Idioma,Timestamp,Tipo\n';
     const rows = history
       .map(
         (item) =>
-          `"${item.id}","${item.dateStr}","${item.timeStr}","${item.ip || 'Desconocida'}","${item.deviceInfo || 'Desconocido'}",${item.timestamp},"${
+          `"${item.id}","${item.dateStr}","${item.timeStr}","${item.ip || 'Desconocida'}","${item.deviceInfo || item.os || 'Desconocido'}","${
+            item.browser || 'Web'
+          }","${item.location || 'Desconocida'}","${item.screenRes || 'N/A'}","${item.language || 'es'}",${item.timestamp},"${
             item.isNewSession ? 'Nueva Sesión' : 'Recarga/Navegación'
           }"`
       )
@@ -230,16 +237,37 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
                           )}
 
                           {/* IP Address Badge */}
-                          <span className="text-[10px] font-mono font-semibold text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+                          <span className="text-[10px] font-mono font-bold text-slate-800 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded flex items-center gap-1">
                             <Globe size={11} className="text-indigo-500" />
                             <span>IP: {item.ip || '127.0.0.1'}</span>
                           </span>
 
-                          {/* Device Info Badge */}
-                          {item.deviceInfo && (
-                            <span className="text-[10px] text-slate-600 bg-slate-100 border border-slate-200/80 px-1.5 py-0.5 rounded flex items-center gap-1">
-                              {isMobile ? <Smartphone size={11} className="text-indigo-500" /> : <Monitor size={11} className="text-slate-500" />}
-                              <span>{item.deviceInfo}</span>
+                          {/* Device / OS Info Badge */}
+                          {(item.deviceInfo || item.os) && (
+                            <span className="text-[10px] font-medium text-slate-700 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+                              {isMobile ? <Smartphone size={11} className="text-indigo-500" /> : <Monitor size={11} className="text-slate-600" />}
+                              <span>{item.deviceInfo || `${item.os} (${item.browser || 'Web'})`}</span>
+                            </span>
+                          )}
+
+                          {/* Location / Timezone Badge */}
+                          {item.location && (
+                            <span className="text-[10px] text-amber-900 bg-amber-50 border border-amber-200/80 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                              <span>📍 {item.location}</span>
+                            </span>
+                          )}
+
+                          {/* Screen Resolution Badge */}
+                          {item.screenRes && item.screenRes !== 'No especificada' && (
+                            <span className="text-[10px] font-mono text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+                              <span>📐 {item.screenRes}</span>
+                            </span>
+                          )}
+
+                          {/* Language Badge */}
+                          {item.language && (
+                            <span className="text-[10px] uppercase font-bold text-blue-700 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded">
+                              🗣️ {item.language}
                             </span>
                           )}
                         </div>

@@ -124,17 +124,46 @@ export const getVisitStats = async (): Promise<VisitStats> => {
   }
 };
 
+function getClientMetrics() {
+  if (typeof window === 'undefined') return {};
+  
+  let timezone = '';
+  try {
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+  } catch (e) {
+    timezone = '';
+  }
+
+  const screenRes = window.screen ? `${window.screen.width}x${window.screen.height}` : undefined;
+  const language = navigator.language || (navigator.languages && navigator.languages[0]) || 'es-ES';
+  const ua = navigator.userAgent || '';
+  const platform = navigator.platform || '';
+
+  return {
+    userAgent: ua,
+    screenRes,
+    language,
+    timezone,
+    platform
+  };
+}
+
 export const recordAppVisit = async (): Promise<VisitStats> => {
   const isNewSession = !sessionStorage.getItem('antelito_visited');
   if (isNewSession) {
     sessionStorage.setItem('antelito_visited', 'true');
   }
 
+  const clientMetrics = getClientMetrics();
+
   try {
     const res = await fetch('/api/visits/record', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ isNewSession })
+      body: JSON.stringify({
+        isNewSession,
+        ...clientMetrics
+      })
     });
     if (res.ok) {
       const text = await res.text();
@@ -162,7 +191,13 @@ export const recordAppVisit = async (): Promise<VisitStats> => {
       timestamp: Date.now(),
       dateStr: now.toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }),
       timeStr: now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      isNewSession
+      isNewSession,
+      deviceInfo: clientMetrics.platform ? `${clientMetrics.platform}` : 'Navegador Web',
+      ip: 'Local/Client',
+      screenRes: clientMetrics.screenRes,
+      language: clientMetrics.language,
+      location: clientMetrics.timezone || 'Local',
+      userAgent: clientMetrics.userAgent
     };
     const updatedHistory = [newLogEntry, ...(currentStats.history || [])].slice(0, 300);
     const updatedStats: VisitStats = {
