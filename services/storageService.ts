@@ -27,11 +27,16 @@ const loadGlobalLibrary = async (): Promise<SourceDocument[]> => {
     const response = await fetch('/library.json');
     if (!response.ok) return [];
     const text = await response.text();
-    if (!text || text.trim() === '' || text.trim() === 'undefined') return [];
-    const globalDocs: SourceDocument[] = JSON.parse(text);
-    if (!Array.isArray(globalDocs)) return [];
-    // Asegurarnos de que tengan el flag readOnly y estén seleccionados por defecto
-    return globalDocs.map(doc => ({ ...doc, readOnly: true, isSelected: true }));
+    if (!text || text.trim() === '' || text.trim() === 'undefined' || text.trim().startsWith('<')) return [];
+    try {
+      const globalDocs: SourceDocument[] = JSON.parse(text);
+      if (!Array.isArray(globalDocs)) return [];
+      // Asegurarnos de que tengan el flag readOnly y estén seleccionados por defecto
+      return globalDocs.map(doc => ({ ...doc, readOnly: true, isSelected: true }));
+    } catch (parseError) {
+      console.warn("Could not parse library.json:", parseError);
+      return [];
+    }
   } catch (error) {
     console.warn("No se pudo cargar la biblioteca global:", error);
     return [];
@@ -94,11 +99,15 @@ export const getVisitStats = async (): Promise<VisitStats> => {
     const res = await fetch('/api/visits');
     if (res.ok) {
       const text = await res.text();
-      if (text && text.trim() !== '' && text.trim() !== 'undefined') {
-        const data = JSON.parse(text);
-        if (data && typeof data.totalVisits === 'number') {
-          await localforage.setItem(VISIT_STATS_KEY, data);
-          return data;
+      if (text && text.trim() !== '' && text.trim() !== 'undefined' && !text.trim().startsWith('<')) {
+        try {
+          const data = JSON.parse(text);
+          if (data && typeof data.totalVisits === 'number') {
+            await localforage.setItem(VISIT_STATS_KEY, data);
+            return data;
+          }
+        } catch (e) {
+          console.warn('Failed to parse /api/visits JSON:', e);
         }
       }
     }
@@ -129,11 +138,15 @@ export const recordAppVisit = async (): Promise<VisitStats> => {
     });
     if (res.ok) {
       const text = await res.text();
-      if (text && text.trim() !== '' && text.trim() !== 'undefined') {
-        const data = JSON.parse(text);
-        if (data && typeof data.totalVisits === 'number') {
-          await localforage.setItem(VISIT_STATS_KEY, data);
-          return data;
+      if (text && text.trim() !== '' && text.trim() !== 'undefined' && !text.trim().startsWith('<')) {
+        try {
+          const data = JSON.parse(text);
+          if (data && typeof data.totalVisits === 'number') {
+            await localforage.setItem(VISIT_STATS_KEY, data);
+            return data;
+          }
+        } catch (e) {
+          console.warn('Failed to parse /api/visits/record JSON:', e);
         }
       }
     }
@@ -171,10 +184,14 @@ export const resetVisitStats = async (): Promise<VisitStats> => {
     const res = await fetch('/api/visits/reset', { method: 'POST' });
     if (res.ok) {
       const text = await res.text();
-      if (text && text.trim() !== '' && text.trim() !== 'undefined') {
-        const data = JSON.parse(text);
-        await localforage.setItem(VISIT_STATS_KEY, data);
-        return data;
+      if (text && text.trim() !== '' && text.trim() !== 'undefined' && !text.trim().startsWith('<')) {
+        try {
+          const data = JSON.parse(text);
+          await localforage.setItem(VISIT_STATS_KEY, data);
+          return data;
+        } catch (e) {
+          console.warn('Failed to parse /api/visits/reset JSON:', e);
+        }
       }
     }
   } catch (err) {
