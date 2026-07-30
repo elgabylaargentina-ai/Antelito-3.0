@@ -91,6 +91,22 @@ export const loadTrainingDatabases = async (): Promise<TrainingDatabase[]> => {
 
 export const getVisitStats = async (): Promise<VisitStats> => {
   try {
+    const res = await fetch('/api/visits');
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.trim() !== '' && text.trim() !== 'undefined') {
+        const data = JSON.parse(text);
+        if (data && typeof data.totalVisits === 'number') {
+          await localforage.setItem(VISIT_STATS_KEY, data);
+          return data;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('API /api/visits unreachable, falling back to local storage', err);
+  }
+
+  try {
     const stats = await localforage.getItem<VisitStats>(VISIT_STATS_KEY);
     return stats || { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0, history: [] };
   } catch (err) {
@@ -100,68 +116,76 @@ export const getVisitStats = async (): Promise<VisitStats> => {
 };
 
 export const recordAppVisit = async (): Promise<VisitStats> => {
+  const isNewSession = !sessionStorage.getItem('antelito_visited');
+  if (isNewSession) {
+    sessionStorage.setItem('antelito_visited', 'true');
+  }
+
   try {
-    const currentStats = await getVisitStats();
-    const isNewSession = !sessionStorage.getItem('antelito_visited');
-    
-    if (isNewSession) {
-      sessionStorage.setItem('antelito_visited', 'true');
+    const res = await fetch('/api/visits/record', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isNewSession })
+    });
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.trim() !== '' && text.trim() !== 'undefined') {
+        const data = JSON.parse(text);
+        if (data && typeof data.totalVisits === 'number') {
+          await localforage.setItem(VISIT_STATS_KEY, data);
+          return data;
+        }
+      }
     }
+  } catch (err) {
+    console.warn('API /api/visits/record unreachable, falling back to local storage', err);
+  }
 
+  try {
+    const currentStats = await localforage.getItem<VisitStats>(VISIT_STATS_KEY) || { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0, history: [] };
     const now = new Date();
-    const dateStr = now.toLocaleDateString('es-ES', { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
-    const timeStr = now.toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      second: '2-digit' 
-    });
-
     const newLogEntry: VisitLogEntry = {
       id: `v_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       timestamp: Date.now(),
-      dateStr,
-      timeStr,
+      dateStr: now.toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }),
+      timeStr: now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       isNewSession
     };
-
-    const existingHistory = Array.isArray(currentStats.history) ? currentStats.history : [];
-    // Save up to 300 entries, most recent first
-    const updatedHistory = [newLogEntry, ...existingHistory].slice(0, 300);
-
+    const updatedHistory = [newLogEntry, ...(currentStats.history || [])].slice(0, 300);
     const updatedStats: VisitStats = {
       totalVisits: (currentStats.totalVisits || 0) + 1,
       lastVisit: Date.now(),
       sessionVisits: (currentStats.sessionVisits || 0) + (isNewSession ? 1 : 0),
       history: updatedHistory
     };
-
     await localforage.setItem(VISIT_STATS_KEY, updatedStats);
     return updatedStats;
   } catch (err) {
-    console.error('Error recording app visit:', err);
-    const now = new Date();
-    const fallbackEntry: VisitLogEntry = {
-      id: `v_${Date.now()}`,
-      timestamp: Date.now(),
-      dateStr: now.toLocaleDateString('es-ES'),
-      timeStr: now.toLocaleTimeString('es-ES'),
-      isNewSession: true
-    };
-    return { totalVisits: 1, lastVisit: Date.now(), sessionVisits: 1, history: [fallbackEntry] };
+    console.error('Error recording app visit locally:', err);
+    return { totalVisits: 1, lastVisit: Date.now(), sessionVisits: 1, history: [] };
   }
 };
 
 export const resetVisitStats = async (): Promise<VisitStats> => {
+  try {
+    const res = await fetch('/api/visits/reset', { method: 'POST' });
+    if (res.ok) {
+      const text = await res.text();
+      if (text && text.trim() !== '' && text.trim() !== 'undefined') {
+        const data = JSON.parse(text);
+        await localforage.setItem(VISIT_STATS_KEY, data);
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('API /api/visits/reset unreachable', err);
+  }
+
   const initial: VisitStats = { totalVisits: 0, lastVisit: Date.now(), sessionVisits: 0, history: [] };
   try {
     await localforage.setItem(VISIT_STATS_KEY, initial);
   } catch (err) {
-    console.error('Error resetting visit stats:', err);
+    console.error('Error resetting visit stats locally:', err);
   }
   return initial;
 };

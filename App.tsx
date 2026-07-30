@@ -10,7 +10,7 @@ import TrainingManager from './components/TrainingManager'; // Import TrainingMa
 import VisitHistoryModal from './components/VisitHistoryModal'; // Import VisitHistoryModal
 import { createChatSession, sendMessageStream } from './services/geminiService';
 import { extractTextFromPDF } from './services/pdfService';
-import { saveLibrary, loadLibrary, exportLibrary, recordAppVisit, resetVisitStats } from './services/storageService';
+import { saveLibrary, loadLibrary, exportLibrary, recordAppVisit, resetVisitStats, getVisitStats } from './services/storageService';
 import { GenerateContentResponse, Chat } from '@google/genai';
 import { Menu, RefreshCw, LogOut, Eye } from 'lucide-react';
 
@@ -44,6 +44,16 @@ const App: React.FC = () => {
           setVisitStats(stats);
       };
       initLibrary();
+
+      // Poll server every 10 seconds to keep visit stats synced across devices
+      const interval = setInterval(async () => {
+          const latestStats = await getVisitStats();
+          if (latestStats && typeof latestStats.totalVisits === 'number') {
+              setVisitStats(latestStats);
+          }
+      }, 10000);
+
+      return () => clearInterval(interval);
   }, []);
 
   const handleResetVisits = async () => {

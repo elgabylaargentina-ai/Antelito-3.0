@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { VisitStats, VisitLogEntry } from '../types';
-import { X, History, Search, Calendar, Clock, RotateCcw, Download, ShieldCheck, UserCheck } from 'lucide-react';
+import { X, History, Search, Calendar, Clock, RotateCcw, Download, ShieldCheck, UserCheck, Smartphone, Monitor } from 'lucide-react';
 
 interface VisitHistoryModalProps {
   isOpen: boolean;
@@ -26,7 +26,8 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
   const filteredHistory = history.filter((entry) => {
     const matchesSearch =
       entry.dateStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      entry.timeStr.toLowerCase().includes(searchTerm.toLowerCase());
+      entry.timeStr.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (entry.deviceInfo && entry.deviceInfo.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesSession = filterSessionOnly ? entry.isNewSession : true;
     return matchesSearch && matchesSession;
   });
@@ -44,11 +45,11 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
 
   const handleExportCSV = () => {
     if (history.length === 0) return;
-    const headers = 'ID,Fecha,Hora,Timestamp,Tipo\n';
+    const headers = 'ID,Fecha,Hora,Dispositivo,Timestamp,Tipo\n';
     const rows = history
       .map(
         (item) =>
-          `"${item.id}","${item.dateStr}","${item.timeStr}",${item.timestamp},"${
+          `"${item.id}","${item.dateStr}","${item.timeStr}","${item.deviceInfo || 'Desconocido'}",${item.timestamp},"${
             item.isNewSession ? 'Nueva Sesión' : 'Recarga/Navegación'
           }"`
       )
@@ -76,12 +77,12 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold">Registro de Visitas a la App</h3>
+                <h3 className="text-lg font-bold">Registro Global de Visitas</h3>
                 <span className="px-2 py-0.5 bg-blue-500/30 text-blue-200 text-[10px] font-bold rounded-full uppercase tracking-wider border border-blue-400/30">
                   Panel Admin
                 </span>
               </div>
-              <p className="text-xs text-slate-300">Historial en tiempo real de hora y fecha de ingreso</p>
+              <p className="text-xs text-slate-300">Historial en tiempo real de todos los dispositivos y usuarios</p>
             </div>
           </div>
           <button
@@ -120,7 +121,7 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar por fecha u hora..."
+              placeholder="Buscar por fecha, hora o dispositivo (ej: Android, PC)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 bg-slate-100 focus:bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500 transition-all"
@@ -165,6 +166,8 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
             <div className="space-y-1.5">
               {filteredHistory.map((item, idx) => {
                 const visitNumber = visitStats.totalVisits - (history.indexOf(item) !== -1 ? history.indexOf(item) : idx);
+                const isMobile = item.deviceInfo?.toLowerCase().includes('android') || item.deviceInfo?.toLowerCase().includes('iphone') || item.deviceInfo?.toLowerCase().includes('ipad');
+
                 return (
                   <div
                     key={item.id || idx}
@@ -175,7 +178,7 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
                         #{visitNumber}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-bold text-slate-800 flex items-center gap-1">
                             <Calendar size={12} className="text-slate-400" />
                             {item.dateStr}
@@ -192,6 +195,12 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
                           {item.isNewSession && (
                             <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-full">
                               Nueva Sesión
+                            </span>
+                          )}
+                          {item.deviceInfo && (
+                            <span className="text-[10px] text-slate-600 bg-slate-100 border border-slate-200/80 px-1.5 py-0.2 rounded flex items-center gap-1">
+                              {isMobile ? <Smartphone size={10} className="text-indigo-500" /> : <Monitor size={10} className="text-slate-500" />}
+                              <span>{item.deviceInfo}</span>
                             </span>
                           )}
                         </div>
@@ -214,7 +223,7 @@ const VisitHistoryModal: React.FC<VisitHistoryModalProps> = ({
         <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-1 text-[11px] text-slate-500">
             <ShieldCheck size={14} className="text-emerald-600" />
-            <span>Registros almacenados localmente de forma segura.</span>
+            <span>Servidor Centralizado: Sincronización en vivo multiterminal.</span>
           </div>
 
           <div className="flex items-center gap-2">
